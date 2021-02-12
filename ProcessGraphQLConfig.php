@@ -223,7 +223,7 @@ class ProcessGraphQLConfig extends Moduleconfig {
     $f->attr('name', 'legalPageFields');
     $f->label = 'Page Fields';
     $f->description = 'Choose which built in `Page` fields you want to be served via GraphQL api.';
-    $f->notes = 'Be careful with fields like `parents` & `children` that will allow user to construct deeply nested queries that might be very expensive for your server to fulfill.';
+    $f->notes = 'Be careful with fields like `parents`, `children` and `references` that will allow user to construct deeply nested queries that might be very expensive for your server to fulfill.';
     foreach (PageType::getBuiltInFields() as $field) {
       $f->addOption($field['name']);
     }
