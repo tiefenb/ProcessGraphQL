@@ -1,8 +1,24 @@
-# Changelog
+# [1.4.0-rc.1](https://github.com/dadish/ProcessGraphQL/compare/v1.3.2...v1.4.0-rc.1) (2021-07-17)
 
-All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+### Features
+
+* **type:** add support for $page->references() api ([5049715](https://github.com/dadish/ProcessGraphQL/commit/50497158a305e9b14d780a1051f8d91cf3caaa91))
+
+## [1.3.2](https://github.com/dadish/ProcessGraphQL/compare/v1.3.1...v1.3.2) (2021-07-12)
+
+
+### Bug Fixes
+
+* **ci:** correct repository/project url ([407b663](https://github.com/dadish/ProcessGraphQL/commit/407b663180fa90fced36901ec27e42e3e251e809))
+* **ci:** turn off dry-run for release script ([afc2c14](https://github.com/dadish/ProcessGraphQL/commit/afc2c14d416398d12791af0bcd942ff56493f4fd))
+
+## [1.3.2-rc.1](https://github.com/dadish/ProcessGraphQL/compare/v1.3.1...v1.3.2-rc.1) (2021-07-12)
+
+
+### Bug Fixes
+
+* **ci:** turn off dry-run for release script ([afc2c14](https://github.com/dadish/ProcessGraphQL/commit/afc2c14d416398d12791af0bcd942ff56493f4fd))
 
 ## [1.0.2] - 2019-11-19
 
