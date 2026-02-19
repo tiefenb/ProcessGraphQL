@@ -1,11 +1,10 @@
 <?php
 
 /**
- * Retreives correct values.
- *
+ * Does not crash if the third party graphql fieldtype class does not exist
  */
 
-namespace ProcessWire\GraphQL\Test\FieldtypeMapMarker;
+namespace ProcessWire\GraphQL\Test\FieldtypeThirdParty;
 
 use ProcessWire\GraphQL\Test\GraphQLTestCase;
 use ProcessWire\GraphQL\Utils;
@@ -17,6 +16,19 @@ class CaseOneTest extends GraphQLTestCase
     "legalTemplates" => ["skyscraper"],
     "legalFields" => ["map"],
   ];
+
+  private $mapMarkerGraphQLClass = "";
+
+  public static function setUpBeforeClass(): void
+  {
+
+    parent::setUpBeforeClass();
+  }
+
+  public static function tearDownAfterClass(): void
+  {
+    parent::tearDownAfterClass();
+  }
 
   public function testValue()
   {

@@ -7,7 +7,7 @@
     "test": "test"
   },
   "scripts": {
-    "test": "php composer.phar exec -v phpunit",
+    "test": "php -d error_reporting=24575 composer.phar exec -v phpunit",
     "test:cover": "phpdbg -qrr vendor/phpunit/phpunit/phpunit --bootstrap test/bootstrap.php --coverage-html coverage --whitelist src test",
     "test:performance:totalCount": "php composer.phar exec -v \"phpunit --bootstrap test/bootstrap.php test/Performance/DbQueryCountTest.php\"",
     "test:performance:longCount": "php composer.phar exec -v \"phpunit --bootstrap test/bootstrap.php test/Performance/DbLongQueryCountTest.php\"",

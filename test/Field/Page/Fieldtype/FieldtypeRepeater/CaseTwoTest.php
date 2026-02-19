@@ -69,6 +69,6 @@ class CaseTwoTest extends GraphQLTestCase
       count($res->data->createListAll->slides->list),
       "Creates wrong amount of repeater items."
     );
-    self::assertObjectNotHasPropertyOrAttribute("errors", $res, "There are errors.");
+    self::assertObjectNotHasProperty("errors", $res, "There are errors.");
   }
 }
