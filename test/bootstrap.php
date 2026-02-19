@@ -5,6 +5,7 @@ ob_start();
 
 // increase the php memory limit for testing
 ini_set('memory_limit', '512M');
+set_time_limit(300); // 5 minutes safety limit
 
 // paths
 global $pwDir;

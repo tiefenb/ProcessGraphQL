@@ -3,20 +3,27 @@
          xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.5/phpunit.xsd"
          bootstrap="test/bootstrap.php"
          colors="true"
-         cacheDirectory=".phpunit.cache">
+         cacheDirectory=".phpunit.cache"
+         displayDetailsOnTestsThatTriggerDeprecations="false"
+         displayDetailsOnTestsThatTriggerErrors="true"
+         displayDetailsOnTestsThatTriggerNotices="false"
+         displayDetailsOnTestsThatTriggerWarnings="false"
+         >
     <testsuites>
         <testsuite name="ProcessGraphQL Test Suite">
             <directory>test</directory>
             <exclude>test/Performance</exclude>
         </testsuite>
     </testsuites>
-    <source ignoreIndirectDeprecations="true" restrictNotices="true" restrictWarnings="true">
+    <source>
         <include>
             <directory>src</directory>
         </include>
         <exclude>
             <directory>vendor</directory>
             <directory>test</directory>
+            <directory>node_modules</directory>
+            <directory>.git</directory>
         </exclude>
     </source>
     <php>
