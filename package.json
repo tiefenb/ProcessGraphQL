@@ -7,11 +7,11 @@
     "test": "test"
   },
   "scripts": {
-    "test": "composer exec -v \"phpunit --bootstrap test/bootstrap.php --exclude-group performance test\"",
+    "test": "php composer.phar exec -v phpunit",
     "test:cover": "phpdbg -qrr vendor/phpunit/phpunit/phpunit --bootstrap test/bootstrap.php --coverage-html coverage --whitelist src test",
-    "test:performance:totalCount": "composer exec -v \"phpunit --bootstrap test/bootstrap.php test/Performance/DbQueryCountTest.php\"",
-    "test:performance:longCount": "composer exec -v \"phpunit --bootstrap test/bootstrap.php test/Performance/DbLongQueryCountTest.php\"",
-    "test:performance:shortCount": "composer exec -v \"phpunit --bootstrap test/bootstrap.php test/Performance/DbShortQueryCountTest.php\"",
+    "test:performance:totalCount": "php composer.phar exec -v \"phpunit --bootstrap test/bootstrap.php test/Performance/DbQueryCountTest.php\"",
+    "test:performance:longCount": "php composer.phar exec -v \"phpunit --bootstrap test/bootstrap.php test/Performance/DbLongQueryCountTest.php\"",
+    "test:performance:shortCount": "php composer.phar exec -v \"phpunit --bootstrap test/bootstrap.php test/Performance/DbShortQueryCountTest.php\"",
     "test:performance": "npm-run-all test:performance:*",
     "posttest": "php test/cleanup.php",
     "release": "semantic-release",

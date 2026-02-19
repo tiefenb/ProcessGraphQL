@@ -2,6 +2,9 @@
 
 use GraphQL\GraphQL;
 use GraphQL\Error\DebugFlag;
+use GraphQL\Validator\Rules\QueryDepth;
+use GraphQL\Validator\Rules\QueryComplexity;
+use GraphQL\Validator\DocumentValidator;
 use ProcessWire\GraphQL\Permissions;
 use ProcessWire\HookEvent;
 use ProcessWire\GraphQL\Schema;
@@ -75,7 +78,7 @@ class ProcessGraphQL extends Process implements Module {
 		// if newName is compatible with the module then add it into legalTemplates
 		if (ProcessGraphQLConfig::isLegalTemplateName($newName)) {
 			$legalTemplates[] = $newName;
-			$this->message("Added `$newName` into legalTemplaes.");
+			$this->message("Added `$newName` into legalTemplates.");
 		}
 
 		// make sure to remember changes!
@@ -195,7 +198,18 @@ class ProcessGraphQL extends Process implements Module {
 		// instantiating Processor and setting the schema
 		$schema = Schema::getSchema();
 		Permissions::turnOnApiAccess();
-		$result = GraphQL::executeQuery($schema, $payload, $this->pages, null, $variables);
+
+    // Add validation rules
+    $validationRules = null;
+    $maxQueryDepth = $this->maxQueryDepth;
+    $maxQueryComplexity = $this->maxQueryComplexity;
+    if ($maxQueryDepth || $maxQueryComplexity) {
+      $validationRules = DocumentValidator::allRules();
+      if ($maxQueryDepth) $validationRules[] = new QueryDepth($maxQueryDepth);
+      if ($maxQueryComplexity) $validationRules[] = new QueryComplexity($maxQueryComplexity);
+    }
+
+		$result = GraphQL::executeQuery($schema, $payload, $this->pages, null, $variables, null, null, $validationRules);
 		$debug = false;
 		if ($this->config->debug) {
 			$debug = $debug = DebugFlag::INCLUDE_DEBUG_MESSAGE | DebugFlag::INCLUDE_TRACE;

@@ -8,6 +8,7 @@ ini_set('memory_limit', '512M');
 
 // paths
 global $pwDir;
+global $siteDir;
 $baseDir = realpath(__DIR__ . "/../");
 $pwDir = realpath($baseDir . "/vendor/processwire/processwire/");
 $siteDir = realpath($baseDir . "/vendor/processwire/site-default/");
@@ -105,6 +106,9 @@ $pages->addHookBefore('find', function ($event) {
 		$event->arguments('selector', $selector);
 	}
 });
+
+// Suppress deprecation warnings from ProcessWire core during tests
+error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 
 // include phpunit assertion functions
 require_once realpath("$baseDir/vendor/phpunit/phpunit/src/Framework/Assert/Functions.php");

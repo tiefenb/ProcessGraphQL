@@ -21,7 +21,7 @@ class ProcessGraphQLConfig extends Moduleconfig {
       'maxLimit' => 50,
 
       /**
-       * An array of template names that will be concidered for schema generation.
+       * An array of template names that will be considered for schema generation.
        * @var array
        */
       'legalTemplates' => [],
@@ -50,7 +50,7 @@ class ProcessGraphQLConfig extends Moduleconfig {
 
       /**
        * An array of built-in PageFile field names that will be considered for
-       * schema createtion.
+       * schema creation.
        * @var array
        */
       'legalPageFileFields' => [
@@ -61,7 +61,7 @@ class ProcessGraphQLConfig extends Moduleconfig {
 
       /**
        * An array of built-in PageImage field names that will be considered for
-       * schema createtion.
+       * schema creation.
        * @var array
        */
       'legalPageImageFields' => [
@@ -81,6 +81,18 @@ class ProcessGraphQLConfig extends Moduleconfig {
        * @var boolean
        */
       'authQuery' => true,
+
+      /**
+       * The maximum depth for GraphQL queries.
+       * @var integer
+       */
+      'maxQueryDepth' => 0,
+
+      /**
+       * The maximum complexity for GraphQL queries.
+       * @var integer
+       */
+      'maxQueryComplexity' => 0,
     );
   }
 
@@ -275,6 +287,22 @@ class ProcessGraphQLConfig extends Moduleconfig {
     $f->attr('name', 'maxLimit');
     $f->label = 'Max Limit';
     $f->description = 'Set the maximum value for `limit` selector field for GraphQL api.';
+    $f->required = true;
+    $inputfields->add($f);
+
+    // maxQueryDepth
+    $f = $this->modules->get('InputfieldInteger');
+    $f->attr('name', 'maxQueryDepth');
+    $f->label = 'Max Query Depth';
+    $f->description = 'Set the maximum depth for GraphQL queries. 0 for no limit.';
+    $f->required = true;
+    $inputfields->add($f);
+
+    // maxQueryComplexity
+    $f = $this->modules->get('InputfieldInteger');
+    $f->attr('name', 'maxQueryComplexity');
+    $f->label = 'Max Query Complexity';
+    $f->description = 'Set the maximum complexity for GraphQL queries. 0 for no limit.';
     $f->required = true;
     $inputfields->add($f);
 

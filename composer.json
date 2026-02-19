@@ -18,7 +18,7 @@
     "processwire/site-default": "1.0.0",
     "ryancramerdesign/fieldtypemapmarker": "2.0.9",
     "dadish/graphqlfieldtypemapmarker": "2.0.0",
-    "phpunit/phpunit": "10.1"
+    "phpunit/phpunit": "^11.0"
   },
   "repositories": [
     {
