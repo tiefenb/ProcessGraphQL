@@ -15,17 +15,6 @@
             <exclude>test/Performance</exclude>
         </testsuite>
     </testsuites>
-    <source>
-        <include>
-            <directory>src</directory>
-        </include>
-        <exclude>
-            <directory>vendor</directory>
-            <directory>test</directory>
-            <directory>node_modules</directory>
-            <directory>.git</directory>
-        </exclude>
-    </source>
     <php>
         <ini name="error_reporting" value="24575" />
         <ini name="display_errors" value="1" />
