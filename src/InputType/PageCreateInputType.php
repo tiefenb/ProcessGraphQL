@@ -32,13 +32,8 @@ class PageCreateInputType
 
   public static function getFields(Template $template)
   {
-    $fields = [];
-
-    // add built in fields
-    $fields = array_merge($fields, self::getBuiltInFields());
-
-    // add template fields
-    $fields = array_merge($fields, self::getTemplateFields($template));
+    // add built in fields and template fields
+    $fields = [...self::getBuiltInFields(), ...self::getTemplateFields($template)];
     
     // mark required fields as nonNull
     $fields = self::markRequiredTemplateFields($fields, $template);
@@ -74,7 +69,7 @@ class PageCreateInputType
       $f = Utils::pwFieldToGraphqlClass($field);
 
       // ignore the field if it has no corresponding Graphql class
-      if (is_null($f)) {
+      if ($f === null) {
         continue;
       }
 
@@ -148,10 +143,10 @@ class PageCreateInputType
 
       // skip if GraphQL class of a field is not found
       $f = Utils::pwFieldToGraphqlClass($field);
-      if (is_null($f)) {
+      if ($f === null) {
         continue;
       }
-      
+
       // set value of a field
       $f::setValue($page, $field, $value);
     }

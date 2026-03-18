@@ -81,7 +81,7 @@ class Permissions
 
       // get templates that user can add pages to
       $addTemplates = self::getAddTemplates()->explode("id");
-      if (!count(array_intersect($addTemplates, $parentTemplates))) {
+      if (empty(array_intersect($addTemplates, $parentTemplates))) {
         return false;
       }
     }
@@ -341,7 +341,7 @@ class Permissions
    */
   public static function getTemplateIds()
   {
-    return array_merge([], self::getTemplates()->explode("id"));
+    return self::getTemplates()->explode("id");
   }
 
   public static function filterTemplatesByPermission($predicator)

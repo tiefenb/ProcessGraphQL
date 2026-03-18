@@ -21,7 +21,7 @@ class Login
         $password = $args['pass'];
         $user = $session->login($username, $password);
         $response = [];
-        if (is_null($user)) {
+        if ($user === null) {
           $response['statusCode'] = 401;
           $response['message'] = 'Wrong name and/or pass.';
         } else {

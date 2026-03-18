@@ -217,7 +217,7 @@ class PageType
       }
 
       $fieldClass = Utils::pwFieldToGraphqlClass($field);
-      if (is_null($fieldClass)) {
+      if ($fieldClass === null) {
         continue;
       }
 
@@ -236,7 +236,7 @@ class PageType
     return $fields;
   }
 
-  public static function getName(Template $template = null)
+  public static function getName(?Template $template = null)
   {
     if ($template instanceof Template) {
       return Utils::normalizeTypeName("{$template->name}Page");
@@ -245,7 +245,7 @@ class PageType
     return 'Page';
   }
 
-  public static function getDescription(Template $template = null)
+  public static function getDescription(?Template $template = null)
   {
     if ($template instanceof Template) {
       $desc = $template->description;
@@ -257,7 +257,7 @@ class PageType
 
   public static function resolvePagefieldWithSelector(array $options)
   {
-    return array_merge($options, [
+    return [...$options,
       'args' => [
         's' => [
           'type' => SelectorType::type(),
@@ -276,12 +276,12 @@ class PageType
         if ($result instanceof NullPage) return null;
         return $result;
       }
-    ]);
+    ];
   }
 
   public static function resolveReferencesWithSelector(array $options)
   {
-    return array_merge($options, [
+    return [...$options,
       'args' => [
         's' => [
           'type' => SelectorType::type(),
@@ -305,7 +305,7 @@ class PageType
         if ($result instanceof NullPage) return null;
         return $result;
       }
-    ]);
+    ];
   }
 
   public static function getEmptyUser()
@@ -325,7 +325,7 @@ class PageType
 
   public static function resolveUser(array $options)
   {
-    return array_merge($options, [
+    return [...$options,
       'resolve' => function (Page $page) use ($options) {
         $name = $options['name'];
         $result = $page->$name;
@@ -342,12 +342,12 @@ class PageType
         }
         return $result;
       }
-    ]);
+    ];
   }
 
   public static function resolveWithDateFormatter(array $options)
   {
-    return array_merge($options, [
+    return [...$options,
       'args' => [
         'format' => [
           'type' => Type::string(),
@@ -369,6 +369,6 @@ class PageType
 
         return $page->$name;
       }
-    ]);
+    ];
   }
 }

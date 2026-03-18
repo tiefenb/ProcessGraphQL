@@ -20,7 +20,7 @@ class InputfieldRepeater
   public static function getDescription($field = null)
   {
     $desc = '';
-    if (!is_null($field)) {
+    if ($field !== null) {
       $desc = $field->description;
     }
     return $desc;

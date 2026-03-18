@@ -42,7 +42,7 @@ class FieldtypeFile
           return new Deferred(function () use ($page, $field){
             $ids = PagesBuffer::get($field->name);
             PagesBuffer::clear($field->name);
-            if ($ids && count($ids)) {
+            if (!empty($ids)) {
               self::loadFilesData($ids, $field);
             }
             return self::getFieldValue($page, $field);
@@ -54,7 +54,7 @@ class FieldtypeFile
 
   public static function loadFilesData(array $pageIDs, Field $field) {
 
-    if(!count($pageIDs)) {
+    if(empty($pageIDs)) {
       return;
     }
 

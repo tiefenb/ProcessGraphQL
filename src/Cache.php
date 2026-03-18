@@ -15,7 +15,7 @@ class Cache
       return self::$typeStore[$name];
     }
 
-    if (is_null($build) || !is_callable($build)) {
+    if ($build === null || !is_callable($build)) {
       throw \Exception("The second argument for Cache::type() should be a callable.");
     }
 
@@ -41,7 +41,7 @@ class Cache
       return self::$fieldStore[$name];
     }
 
-    if (is_null($build) || !is_callable($build)) {
+    if ($build === null || !is_callable($build)) {
       throw \Exception("The second argument for Cache::field() should be a callable.");
     }
 

@@ -11,7 +11,7 @@ use ProcessWire\GraphQL\Utils;
 use ProcessWire\NullPage;
 
 class PageArrayType {
-	public static function &type(Template $template = null)
+	public static function &type(?Template $template = null)
 	{
 		$type = null;
 		if ($template instanceof Template) {
@@ -21,7 +21,7 @@ class PageArrayType {
 				return new ObjectType([
 					'name' => self::getName(),
 					'description' => self::getDescription(),
-					'fields' => array_merge(self::getPaginationFields(), [
+					'fields' => [...self::getPaginationFields(),
 						[
 							'name' => 'list',
 							'type' => Type::listOf(PageType::type()),
@@ -54,7 +54,7 @@ class PageArrayType {
 								return null;
 							},
 						]
-					]),
+					],
 				]);
 			});
 		}
@@ -67,7 +67,7 @@ class PageArrayType {
 			return new ObjectType([
 				'name' => self::getName($template),
 				'description' => self::getDescription($template),
-				'fields' => array_merge(self::getPaginationFields(), [
+				'fields' => [...self::getPaginationFields(),
 					[
 						'name' => 'list',
 						'type' => Type::listOf(PageType::type($template)),
@@ -100,13 +100,13 @@ class PageArrayType {
 							return null;
 						},
 					],
-				])
+				]
 			]);
 		});
 		return $type;
 	}
 
-  public static function getName(Template $template = null)
+  public static function getName(?Template $template = null)
   {
     if ($template instanceof Template) {
 			return Utils::normalizeTypeName("{$template->name}PageArray");
@@ -115,7 +115,7 @@ class PageArrayType {
     return 'PageArray';
   }
 
-  public static function getDescription(Template $template = null)
+  public static function getDescription(?Template $template = null)
   {
     if ($template instanceof Template) {
       $desc = $template->description;
@@ -179,7 +179,7 @@ class PageArrayType {
 													of pages actually in PageArray, and is used for calculating pagination.
 													Whereas `count` will always return the number of pages actually in PageArray.',
 				'resolve' => function ($value) {
-					return (integer) $value->getTotal();
+					return (int) $value->getTotal();
 				}
 			],
 			[
@@ -189,7 +189,7 @@ class PageArrayType {
 													In pagination, this value represents the max items to display per page. The default limit
 													is set to $maxLimit.",
 				'resolve' => function ($value) {
-					return (integer) $value->getLimit();
+					return (int) $value->getLimit();
 				}
 			],
 			[
@@ -198,7 +198,7 @@ class PageArrayType {
 				'description' => "Get the number of the starting result that led to the PageArray in pagination.
 													Returns 0 if in the first page of results.",
 				'resolve' => function ($value) {
-					return (integer) $value->getStart();
+					return (int) $value->getStart();
 				}
 			]
 		];

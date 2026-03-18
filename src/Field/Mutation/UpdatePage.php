@@ -45,7 +45,7 @@ class UpdatePage
     $user = Utils::user();
     $sanitizer = Utils::sanitizer();
     $values = (array) $args['page'];
-    $id = (integer) $values['id'];
+    $id = (int) $values['id'];
     $p = $pages->get($id);
 
     // make sure the target page exists

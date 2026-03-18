@@ -22,10 +22,8 @@ class RepeaterCreateInputType
 
   public static function getFields(Template $template)
   {
-    $fields = [];
-
     // add template fields
-    $fields = array_merge($fields, PageCreateInputType::getTemplateFields($template));
+    $fields = [...PageCreateInputType::getTemplateFields($template)];
     
     // mark required fields as nonNull
     $fields = PageCreateInputType::markRequiredTemplateFields($fields, $template);

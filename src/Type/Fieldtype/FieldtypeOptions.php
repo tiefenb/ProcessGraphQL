@@ -142,7 +142,7 @@ class FieldtypeOptions
     });
   }
 
-  public static function getName(Field $field = null)
+  public static function getName(?Field $field = null)
   {
     if ($field instanceof Field) {
       return Utils::normalizeTypeName("{$field->name}".self::$inputName);

@@ -32,7 +32,7 @@ class ImageType {
         'name' => self::$name,
         'description' => self::$description,
         'fields' => function () {
-          return array_merge(self::getLegalBuiltInFields(), FileType::getLegalBuiltInFields());
+          return [...self::getLegalBuiltInFields(), ...FileType::getLegalBuiltInFields()];
         }
       ]);
     });
@@ -48,7 +48,7 @@ class ImageType {
         'type' => Type::int(),
         'description' => 'The width of the image.',
         'resolve' => function ($value) {
-          return (integer) $value->width;
+          return (int) $value->width;
         }
       ],
       [
@@ -56,7 +56,7 @@ class ImageType {
         'type' => Type::int(),
         'description' => 'The height of the image.',
         'resolve' => function ($value) {
-          return (integer) $value->height;
+          return (int) $value->height;
         }
       ],
       [

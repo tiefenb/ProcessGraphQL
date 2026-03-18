@@ -39,7 +39,7 @@ class FieldtypeImage
           return new Deferred(function () use ($page, $field){
             $ids = PagesBuffer::get($field->name);
             PagesBuffer::clear($field->name);
-            if ($ids && count($ids)) {
+            if (!empty($ids)) {
               FieldtypeFile::loadFilesData($ids, $field);
             }
             return FieldtypeFile::getFieldValue($page, $field);

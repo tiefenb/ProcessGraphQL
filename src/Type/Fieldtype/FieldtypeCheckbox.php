@@ -23,13 +23,13 @@ class FieldtypeCheckbox
         'name' => self::$name,
         'description' => self::$description,
         'serialize' => function ($value) {
-          return (boolean) $value;
+          return (bool) $value;
         },
         'parseValue' => function ($value) {
-          return (boolean) $value;
+          return (bool) $value;
         },
         'parseLiteral' => function ($valueNode) {
-          return (boolean) $valueNode->value;
+          return (bool) $valueNode->value;
         },
       ]);
     });

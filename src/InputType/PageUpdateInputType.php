@@ -39,11 +39,8 @@ class PageUpdateInputType
       'description' => 'ProcessWire Page id of the page you want to update.',
     ];
 
-    // add built in fields
-    $fields = array_merge($fields, PageCreateInputType::getBuiltInFields());
-
-    // add template fields
-    $fields = array_merge($fields, PageCreateInputType::getTemplateFields($template));
+    // add built in fields and template fields
+    $fields = [...$fields, ...PageCreateInputType::getBuiltInFields(), ...PageCreateInputType::getTemplateFields($template)];
 
     return $fields;
   }

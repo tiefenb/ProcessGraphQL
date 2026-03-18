@@ -91,7 +91,7 @@ class SelectorType
         if ($template instanceof Template) $names[] = $template->name;
       }
 
-      if (count($names)) {
+      if (!empty($names)) {
         // at least one of the templates the user chose is legal
         // let the user search those
         $templateSelector->set('value', $names);

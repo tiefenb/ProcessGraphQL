@@ -33,7 +33,7 @@ class RepeaterUpdateInputType
       'description' => 'The id of the repeater item that you want to update.',
     ];
 
-    $fields = array_merge($fields, PageCreateInputType::getTemplateFields($template));
+    $fields = [...$fields, ...PageCreateInputType::getTemplateFields($template)];
 
     return $fields;
   }

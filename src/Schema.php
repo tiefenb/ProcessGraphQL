@@ -23,7 +23,7 @@ class Schema
 
   public static function getSchema()
   {
-    if (is_null(self::$schema)) {
+    if (self::$schema === null) {
       self::build();
     }
 
@@ -53,6 +53,7 @@ class Schema
 
   public static function buildQuery()
   {
+    $module = Utils::module();
     $queryFields = [];
 
     // add lagal templates
@@ -61,7 +62,7 @@ class Schema
     }
 
     // User. The `me`
-    if (Utils::module()->meQuery) {
+    if ($module->meQuery) {
       $queryFields[] = [
         'name' => 'me',
         'description' => 'The current user of the app.',
@@ -73,7 +74,7 @@ class Schema
     }
 
     // Auth
-    if (Utils::module()->authQuery) {
+    if ($module->authQuery) {
       if (Utils::user()->isLoggedin()) {
         $queryFields[] = Logout::field();
       } else {
@@ -93,9 +94,9 @@ class Schema
     }
 
     // let the user modify the query operation
-    $queryFields = Utils::module()->getQueryFields($queryFields);
+    $queryFields = $module->getQueryFields($queryFields);
 
-    if (count($queryFields)) {
+    if (!empty($queryFields)) {
       return new ObjectType([
         'name' => 'Query',
         'fields' => $queryFields,
@@ -127,7 +128,7 @@ class Schema
     // let the user modify the query operation
     $mutationFields = Utils::module()->getMutationFields($mutationFields);
 
-    if (count($mutationFields)) {
+    if (!empty($mutationFields)) {
       return new ObjectType([
         'name' => 'Mutation',
         'fields' => $mutationFields,

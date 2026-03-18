@@ -90,7 +90,7 @@ class FileType {
         'type' => Type::int(),
         'description' => 'File size (number of bytes).',
         'resolve' => function ($value) {
-          return (integer) $value->filesize;
+          return (int) $value->filesize;
         }
       ],
 
@@ -99,7 +99,7 @@ class FileType {
         'type' => Type::int(),
         'description' => 'Unix timestamp of when Pagefile (file, description or tags) was last modified.',
         'resolve' => function ($value) {
-          return (integer) $value->modified;
+          return (int) $value->modified;
         }
       ],
 
@@ -108,7 +108,7 @@ class FileType {
         'type' => Type::int(),
         'description' => 'Unix timestamp of when file (only) was last modified.',
         'resolve' => function ($value) {
-          return (integer) $value->mtime;
+          return (int) $value->mtime;
         }
       ],
 
@@ -117,7 +117,7 @@ class FileType {
         'type' => Type::int(),
         'description' => 'Unix timestamp of when file was created.',
         'resolve' => function ($value) {
-          return (integer) $value->created;
+          return (int) $value->created;
         }
       ],
 
