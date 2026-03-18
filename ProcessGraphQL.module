@@ -2,6 +2,9 @@
 
 use GraphQL\GraphQL;
 use GraphQL\Error\DebugFlag;
+use GraphQL\Validator\Rules\QueryDepth;
+use GraphQL\Validator\Rules\QueryComplexity;
+use GraphQL\Validator\DocumentValidator;
 use ProcessWire\GraphQL\Permissions;
 use ProcessWire\HookEvent;
 use ProcessWire\GraphQL\Schema;
@@ -15,13 +18,13 @@ class ProcessGraphQL extends Process implements Module {
 	{
 		return array(
 			'title' => 'GraphQL',
-			'version' => '1.4.0-rc.1',
+			'version' => '2.0.0',
 			'summary' => 'GraphQL for ProcessWire.',
 			'href' => 'https://github.com/dadish/ProcessGraphql',
 			'singular' => true,
 			'autoload' => 'process=ProcessTemplate',
 			'icon' => 'object-group',
-      'requires' => array("PHP>=7.2", "ProcessWire>=3.0.62"),
+      'requires' => array("PHP>=7.4", "ProcessWire>=3.0.210"),
 			);
 	}
 
@@ -75,7 +78,7 @@ class ProcessGraphQL extends Process implements Module {
 		// if newName is compatible with the module then add it into legalTemplates
 		if (ProcessGraphQLConfig::isLegalTemplateName($newName)) {
 			$legalTemplates[] = $newName;
-			$this->message("Added `$newName` into legalTemplaes.");
+			$this->message("Added `$newName` into legalTemplates.");
 		}
 
 		// make sure to remember changes!
@@ -128,12 +131,10 @@ class ProcessGraphQL extends Process implements Module {
    */
 	public function setupGraphiQLAssets()
 	{
-		$this->config->scripts->add("https://unpkg.com/es6-promise@4.2.8/dist/es6-promise.auto.min.js");
-		$this->config->scripts->add("https://unpkg.com/whatwg-fetch@3.0.0/dist/fetch.umd.js");
-		$this->config->scripts->add("https://unpkg.com/react@16.12.0/umd/react.production.min.js");
-		$this->config->scripts->add("https://unpkg.com/react-dom@16.12.0/umd/react-dom.production.min.js");
-		$this->config->scripts->add('https://unpkg.com/graphiql@0.14.2/graphiql.min.js');
-		$this->config->styles->add('https://unpkg.com/graphiql@0.14.2/graphiql.css');
+		$this->config->scripts->add("https://unpkg.com/react@18.2.0/umd/react.production.min.js");
+		$this->config->scripts->add("https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js");
+		$this->config->scripts->add('https://unpkg.com/graphiql@1.10.0/graphiql.min.js');
+		$this->config->styles->add('https://unpkg.com/graphiql@1.10.0/graphiql.css');
 		$this->config->js($this->className, [
 			'GraphQLServerUrl' => $this->getGraphQLServerUrl(),
 		]);
@@ -166,9 +167,9 @@ class ProcessGraphQL extends Process implements Module {
 		} else {
 				$requestData = $_POST;
 		}
-		$payload = isset($requestData['query']) ? $requestData['query'] : null;
-		if (is_null($payload)) {
-			$payload = isset($requestData['payload']) ? $requestData['payload'] : null;
+		$payload = isset($requestData['query']) ? $requestData['query'] : "";
+		if (empty($payload)) {
+			$payload = isset($requestData['payload']) ? $requestData['payload'] : "";
 		}
 		$variables = isset($requestData['variables']) ? $requestData['variables'] : null;
 
@@ -186,7 +187,7 @@ class ProcessGraphQL extends Process implements Module {
    * Executes GraphQL api.
    * @return string GraphQL api JSON response.
    */
-	public function ___executeGraphQL($payload = null, $variables = null)
+	public function ___executeGraphQL($payload = "", $variables = null)
 	{
 		if (!$payload) {
 			$request = $this->getRequest();
@@ -197,7 +198,18 @@ class ProcessGraphQL extends Process implements Module {
 		// instantiating Processor and setting the schema
 		$schema = Schema::getSchema();
 		Permissions::turnOnApiAccess();
-		$result = GraphQL::executeQuery($schema, $payload, $this->pages, null, $variables);
+
+    // Add validation rules
+    $validationRules = null;
+    $maxQueryDepth = $this->maxQueryDepth;
+    $maxQueryComplexity = $this->maxQueryComplexity;
+    if ($maxQueryDepth || $maxQueryComplexity) {
+      $validationRules = DocumentValidator::allRules();
+      if ($maxQueryDepth) $validationRules[] = new QueryDepth($maxQueryDepth);
+      if ($maxQueryComplexity) $validationRules[] = new QueryComplexity($maxQueryComplexity);
+    }
+
+		$result = GraphQL::executeQuery($schema, $payload, $this->pages, null, $variables, null, null, $validationRules);
 		$debug = false;
 		if ($this->config->debug) {
 			$debug = $debug = DebugFlag::INCLUDE_DEBUG_MESSAGE | DebugFlag::INCLUDE_TRACE;

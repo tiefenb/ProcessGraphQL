@@ -9,3 +9,9 @@ coverage
 *.new/*
 
 ProcessGraphQL.zip
+.DS_Store
+composer.phar
+SESSION_REPORT.md
+.phpunit.cache
+
+.DS_Store

@@ -12,19 +12,21 @@ workflows:
   main:
     jobs:
       - test:
-          name: test-php-7.2
+          name: test-php-7.4
           context:
+            - github-credentials
             - dockerhub-credentials
-          php: "7.2"
-          phpunit: "7.5"
+          php: "7.4"
+          phpunit: "9.6"
           mysql: "5.7.34"
 
       - test:
-          name: test-php-8.0
+          name: test-php-8.2
           context:
+            - github-credentials
             - dockerhub-credentials
-          php: "8.0"
-          phpunit: "9.5"
+          php: "8.2"
+          phpunit: "10.1"
           mysql: "8.0.25"
 
       - approve_release:
@@ -32,8 +34,8 @@ workflows:
           <<: *release_branches
           type: approval
           requires:
-            - test-php-7.2
-            - test-php-8.0
+            - test-php-7.4
+            - test-php-8.2
 
       - release:
           name: release
@@ -92,6 +94,7 @@ jobs:
           name: Install Dependencies
           command: |
             rm composer.lock
+            composer config http-basic.github.com dadish ${GH_TOKEN}
             composer require phpunit/phpunit ^<<parameters.phpunit>> --dev
             composer update --with-all-dependencies
             composer install
@@ -115,7 +118,7 @@ jobs:
 
   release:
     docker:
-      - image: dadish/processgraphql-primary:0.4.1
+      - image: dadish/processgraphql-primary:1.0.0
         auth:
           username: $DOCKERHUB_USERNAME
           password: $DOCKERHUB_PASSWORD

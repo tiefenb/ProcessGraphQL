@@ -1,3 +1,150 @@
+# [2.0.0](https://github.com/dadish/ProcessGraphQL/compare/v1.4.2...v2.0.0) (2023-08-18)
+
+
+### Bug Fixes
+
+* **test:** make tests compatible with phpunit 9 and 10. ([91ac9c7](https://github.com/dadish/ProcessGraphQL/commit/91ac9c7bc1aabb86b5aa95f7088ae418e225de89))
+
+
+### Features
+
+* **deps:** update webonyx/graphql-php into latest version ([395c9b5](https://github.com/dadish/ProcessGraphQL/commit/395c9b5215d6f4f2e05ff1f7f0c8847cb927b33a))
+* **deps:** upgrade webonyx/graphql-php to version 15.6.2 ([eb8939f](https://github.com/dadish/ProcessGraphQL/commit/eb8939fa3c1e8ac9026fdedb16a11f11f14a0359))
+
+
+### BREAKING CHANGES
+
+* **deps:** The webonyx/graphql-php from now on requires PHP version 7.4 and higher. So do we from now on.
+
+# [2.0.0-rc.2](https://github.com/dadish/ProcessGraphQL/compare/v2.0.0-rc.1...v2.0.0-rc.2) (2023-08-17)
+
+
+### Features
+
+* **deps:** upgrade webonyx/graphql-php to version 15.6.2 ([eb8939f](https://github.com/dadish/ProcessGraphQL/commit/eb8939fa3c1e8ac9026fdedb16a11f11f14a0359))
+
+# [2.0.0-rc.1](https://github.com/dadish/ProcessGraphQL/compare/v1.4.2...v2.0.0-rc.1) (2023-05-15)
+
+
+### Bug Fixes
+
+* **test:** make tests compatible with phpunit 9 and 10. ([91ac9c7](https://github.com/dadish/ProcessGraphQL/commit/91ac9c7bc1aabb86b5aa95f7088ae418e225de89))
+
+
+### Features
+
+* **deps:** update webonyx/graphql-php into latest version ([395c9b5](https://github.com/dadish/ProcessGraphQL/commit/395c9b5215d6f4f2e05ff1f7f0c8847cb927b33a))
+
+
+### BREAKING CHANGES
+
+* **deps:** The webonyx/graphql-php from now on requires PHP version 7.4 and higher. So do we from now on.
+
+## [1.4.2](https://github.com/dadish/ProcessGraphQL/compare/v1.4.1...v1.4.2) (2023-05-14)
+
+
+### Bug Fixes
+
+* **FeildtypeOptions:** fix error for empty values when it's a single option ([7a02e9d](https://github.com/dadish/ProcessGraphQL/commit/7a02e9d1af24dda78fd40ebb4a96710a55fe67e4))
+
+## [1.4.2-rc.1](https://github.com/dadish/ProcessGraphQL/compare/v1.4.1...v1.4.2-rc.1) (2023-05-14)
+
+
+### Bug Fixes
+
+* **FeildtypeOptions:** fix error for empty values when it's a single option ([7a02e9d](https://github.com/dadish/ProcessGraphQL/commit/7a02e9d1af24dda78fd40ebb4a96710a55fe67e4))
+
+## [1.4.1](https://github.com/dadish/ProcessGraphQL/compare/v1.4.0...v1.4.1) (2022-07-30)
+
+
+### Bug Fixes
+
+* **deps:** keep composer autolaod files ([9fb6f12](https://github.com/dadish/ProcessGraphQL/commit/9fb6f12215f4cfd18b851bb29f10d186d54580b7))
+* **deps:** update npm dependencies to the latest ([021947b](https://github.com/dadish/ProcessGraphQL/commit/021947b5b1daba048c35de5481820ba8a6b9ec8f))
+* **scrips:** __dirname is undefined ([8dbc180](https://github.com/dadish/ProcessGraphQL/commit/8dbc18079a6c591c15f4bab680772673517f0185))
+* **scrips:** import fs as a commonjs module ([6aac63d](https://github.com/dadish/ProcessGraphQL/commit/6aac63dcd350d44039ca3f6eb71beb363574f634))
+* **scripts:** use import instead of require ([6265229](https://github.com/dadish/ProcessGraphQL/commit/6265229c345dab8d834a66325ebd702ee85eba38))
+
+## [1.4.1-rc.4](https://github.com/dadish/ProcessGraphQL/compare/v1.4.1-rc.3...v1.4.1-rc.4) (2022-07-30)
+
+
+### Bug Fixes
+
+* **scrips:** import fs as a commonjs module ([6aac63d](https://github.com/dadish/ProcessGraphQL/commit/6aac63dcd350d44039ca3f6eb71beb363574f634))
+
+## [1.4.1-rc.3](https://github.com/dadish/ProcessGraphQL/compare/v1.4.1-rc.2...v1.4.1-rc.3) (2022-07-30)
+
+
+### Bug Fixes
+
+* **scrips:** __dirname is undefined ([8dbc180](https://github.com/dadish/ProcessGraphQL/commit/8dbc18079a6c591c15f4bab680772673517f0185))
+
+## [1.4.1-rc.2](https://github.com/dadish/ProcessGraphQL/compare/v1.4.1-rc.1...v1.4.1-rc.2) (2022-07-30)
+
+
+### Bug Fixes
+
+* **deps:** keep composer autolaod files ([9fb6f12](https://github.com/dadish/ProcessGraphQL/commit/9fb6f12215f4cfd18b851bb29f10d186d54580b7))
+
+## [1.4.1-rc.1](https://github.com/dadish/ProcessGraphQL/compare/v1.4.0...v1.4.1-rc.1) (2022-07-30)
+
+
+### Bug Fixes
+
+* **deps:** update npm dependencies to the latest ([021947b](https://github.com/dadish/ProcessGraphQL/commit/021947b5b1daba048c35de5481820ba8a6b9ec8f))
+* **scripts:** use import instead of require ([6265229](https://github.com/dadish/ProcessGraphQL/commit/6265229c345dab8d834a66325ebd702ee85eba38))
+
+# [1.4.0](https://github.com/dadish/ProcessGraphQL/compare/v1.3.2...v1.4.0) (2022-07-29)
+
+
+### Bug Fixes
+
+* **ci:** add php ctype extension ([6051409](https://github.com/dadish/ProcessGraphQL/commit/6051409903c81096313cde3b64531d10cc2910d1))
+* **composer:** update the composer.lock file. ([b006710](https://github.com/dadish/ProcessGraphQL/commit/b006710ddd25ca22af97c4239b51529baa38727c))
+* **deps:** perform tests on a site-blank profile instead of site-default ([8eb1f84](https://github.com/dadish/ProcessGraphQL/commit/8eb1f84ee3a60aa6f8c8bac011ea4cab791c81de))
+* **deps:** update ci run for php 8 ([b49f7e0](https://github.com/dadish/ProcessGraphQL/commit/b49f7e0b6d5551b07217cd9e3cfece9ab9199b6b))
+* **deps:** update php dependencies to work with php 8.1 ([96465c3](https://github.com/dadish/ProcessGraphQL/commit/96465c36ad7e58e6dd6f4980b391fc12a3963ecc))
+* **deps:** upgrade processwire/processwire to version 3.0.184 ([f44209c](https://github.com/dadish/ProcessGraphQL/commit/f44209cdd0afb8c4f783ad527b15a060e2cc691c))
+* **deps:** upgrade processwire/processwire to version 3.0.200 ([6ca94ad](https://github.com/dadish/ProcessGraphQL/commit/6ca94ad9febc46303fd28ee24b0af5d7e2bf7cdc))
+* **deps:** use processwire/processwire as a "vcs" repository. ([caf27b3](https://github.com/dadish/ProcessGraphQL/commit/caf27b3061b8c9010e112b8202aa46bdcf424c6e))
+* **deps:** use site-default for testing instead of site-blank ([a00703e](https://github.com/dadish/ProcessGraphQL/commit/a00703eb45ef490af74be8a391a2de8965cf2eae))
+* **third-party-fieldtype:** allow multiple types to be created by third-party fieldtypes ([2146054](https://github.com/dadish/ProcessGraphQL/commit/2146054f942a784b07d843959d01109e6dd96862))
+
+
+### Features
+
+* **deps:** upgrade php dependencies ([530a72e](https://github.com/dadish/ProcessGraphQL/commit/530a72e349d7a262d26af9452f5681fa36ee5d33))
+* **graphiql:** add support for request headers ([c0fb4be](https://github.com/dadish/ProcessGraphQL/commit/c0fb4beece26453d46f782fc95df1fa29b476051))
+* **type:** add support for $page->references() api ([5049715](https://github.com/dadish/ProcessGraphQL/commit/50497158a305e9b14d780a1051f8d91cf3caaa91))
+
+# [1.4.0-rc.3](https://github.com/dadish/ProcessGraphQL/compare/v1.4.0-rc.2...v1.4.0-rc.3) (2022-07-29)
+
+
+### Features
+
+* **graphiql:** add support for request headers ([c0fb4be](https://github.com/dadish/ProcessGraphQL/commit/c0fb4beece26453d46f782fc95df1fa29b476051))
+
+# [1.4.0-rc.2](https://github.com/dadish/ProcessGraphQL/compare/v1.4.0-rc.1...v1.4.0-rc.2) (2022-07-27)
+
+
+### Bug Fixes
+
+* **ci:** add php ctype extension ([6051409](https://github.com/dadish/ProcessGraphQL/commit/6051409903c81096313cde3b64531d10cc2910d1))
+* **composer:** update the composer.lock file. ([b006710](https://github.com/dadish/ProcessGraphQL/commit/b006710ddd25ca22af97c4239b51529baa38727c))
+* **deps:** perform tests on a site-blank profile instead of site-default ([8eb1f84](https://github.com/dadish/ProcessGraphQL/commit/8eb1f84ee3a60aa6f8c8bac011ea4cab791c81de))
+* **deps:** update ci run for php 8 ([b49f7e0](https://github.com/dadish/ProcessGraphQL/commit/b49f7e0b6d5551b07217cd9e3cfece9ab9199b6b))
+* **deps:** update php dependencies to work with php 8.1 ([96465c3](https://github.com/dadish/ProcessGraphQL/commit/96465c36ad7e58e6dd6f4980b391fc12a3963ecc))
+* **deps:** upgrade processwire/processwire to version 3.0.184 ([f44209c](https://github.com/dadish/ProcessGraphQL/commit/f44209cdd0afb8c4f783ad527b15a060e2cc691c))
+* **deps:** upgrade processwire/processwire to version 3.0.200 ([6ca94ad](https://github.com/dadish/ProcessGraphQL/commit/6ca94ad9febc46303fd28ee24b0af5d7e2bf7cdc))
+* **deps:** use processwire/processwire as a "vcs" repository. ([caf27b3](https://github.com/dadish/ProcessGraphQL/commit/caf27b3061b8c9010e112b8202aa46bdcf424c6e))
+* **deps:** use site-default for testing instead of site-blank ([a00703e](https://github.com/dadish/ProcessGraphQL/commit/a00703eb45ef490af74be8a391a2de8965cf2eae))
+* **third-party-fieldtype:** allow multiple types to be created by third-party fieldtypes ([2146054](https://github.com/dadish/ProcessGraphQL/commit/2146054f942a784b07d843959d01109e6dd96862))
+
+
+### Features
+
+* **deps:** upgrade php dependencies ([530a72e](https://github.com/dadish/ProcessGraphQL/commit/530a72e349d7a262d26af9452f5681fa36ee5d33))
+
 # [1.4.0-rc.1](https://github.com/dadish/ProcessGraphQL/compare/v1.3.2...v1.4.0-rc.1) (2021-07-17)
 
 

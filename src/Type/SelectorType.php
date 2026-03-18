@@ -60,6 +60,14 @@ class SelectorType
 
     $selectors = new Selectors($value);
 
+    // forbidden selectors
+    $forbidden = ['check_access', 'include', 'force_access', 'instance_id', 'status_id'];
+    foreach ($forbidden as $field) {
+      if (self::findSelectorByField($selectors, $field)) {
+        throw new Error("The selector field '$field' is not allowed.");
+      }
+    }
+
     // make sure the limit field is not greater than max allowed
     $maxLimit = Utils::module()->maxLimit;
     $limitSelector = self::findSelectorByField($selectors, 'limit');

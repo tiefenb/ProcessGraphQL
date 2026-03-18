@@ -5,11 +5,14 @@ ob_start();
 
 // increase the php memory limit for testing
 ini_set('memory_limit', '512M');
+set_time_limit(300); // 5 minutes safety limit
 
 // paths
+global $pwDir;
+global $siteDir;
 $baseDir = realpath(__DIR__ . "/../");
 $pwDir = realpath($baseDir . "/vendor/processwire/processwire/");
-$siteDir = realpath($pwDir . "/site-default/");
+$siteDir = realpath($baseDir . "/vendor/processwire/site-default/");
 $moduleDir = $siteDir . "/modules/ProcessGraphQL";
 $testFilesDir = realpath($baseDir . "/test/files");
 $siteFilesDir = $siteDir . "/assets/files";
@@ -23,7 +26,7 @@ if (file_exists($installFile)) {
 	unlink($installFile);
 }
 
-// overwrite site-default's config.php with our own custom one
+// overwrite site-defaults's config.php with our own custom one
 copy(__DIR__ . "/site/config.php", $siteDir . "/config.php");
 
 // symlink site/classes directory
@@ -62,6 +65,13 @@ if (!file_exists($mapMarkerGraphQLDestDir)) {
 	\symlink($mapMarkerGraphQLDir, $mapMarkerGraphQLDestDir);
 }
 
+// symlink the site-default to vendor/processwire/processwire/site
+// so it is next to wire directory.
+$siteDirDest = $pwDir . "/site";
+if (!file_exists($siteDirDest)) {
+	\symlink($siteDir, $siteDirDest);
+}
+
 // symlink skyscrapers pages files to site's asset files
 if (!file_exists($siteFilesDir)) {
 	\symlink($testFilesDir, $siteFilesDir);
@@ -69,9 +79,7 @@ if (!file_exists($siteFilesDir)) {
 
 use ProcessWire\ProcessWire;
 
-$config = ProcessWire::buildConfig($pwDir, null, [
-  "siteDir" => "site-default"
-]);
+$config = ProcessWire::buildConfig($pwDir);
 
 require_once realpath(__DIR__ . "/databaseReset.php");
 
@@ -99,6 +107,9 @@ $pages->addHookBefore('find', function ($event) {
 		$event->arguments('selector', $selector);
 	}
 });
+
+// Suppress deprecation warnings from ProcessWire core during tests
+error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
 
 // include phpunit assertion functions
 require_once realpath("$baseDir/vendor/phpunit/phpunit/src/Framework/Assert/Functions.php");
