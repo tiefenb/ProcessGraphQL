@@ -33,7 +33,8 @@ class ProcessGraphQL extends Process implements Module {
 	 */
 	public function init()
 	{
-		require_once $this->config->paths->site . 'modules/ProcessGraphQL/vendor/autoload.php';
+		$autoload = $this->config->paths->site . 'modules/ProcessGraphQL/vendor/autoload.php';
+		if (file_exists($autoload)) require_once $autoload;
 		$this->addHookAfter('Template::changed', $this, 'hookTemplateNameChange');
 	}
 

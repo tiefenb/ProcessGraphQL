@@ -5,7 +5,8 @@ use ProcessWire\GraphQL\Type\PageType;
 use ProcessWire\GraphQL\Type\FileType;
 use ProcessWire\GraphQL\Type\ImageType;
 
-require_once $this->config->paths->site . 'modules/ProcessGraphQL/vendor/autoload.php';
+$autoload = $this->config->paths->site . 'modules/ProcessGraphQL/vendor/autoload.php';
+if (file_exists($autoload)) require_once $autoload;
 
 class ProcessGraphQLConfig extends Moduleconfig {
 
