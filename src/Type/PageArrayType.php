@@ -147,7 +147,7 @@ class PageArrayType {
         if (isset($args['s'])) {
           $selector .= $args['s'] . ", ";
 				}
-				rtrim($selector, ", ");
+				$selector = rtrim($selector, ", ");
 				return $pages->find(SelectorType::parseValue($selector), $finderOptions);
       }
     ];

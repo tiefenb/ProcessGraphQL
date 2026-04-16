@@ -21,7 +21,7 @@ class FieldtypeThirdParty
     $inputType =& Cache::field("input--{$field->name}", function () use ($field) {
       $fieldSettings = self::field($field);
       $thirdPartyClassName = self::getThirdPartyClassName($field);
-      if (method_exists($thirdPartyClassName, 'getInputType')) {
+      if ($thirdPartyClassName !== null && method_exists($thirdPartyClassName, 'getInputType')) {
         $fieldSettings['type'] = $thirdPartyClassName::getInputType($field);
       }
       return $fieldSettings;
