@@ -17,7 +17,7 @@ class FieldtypeFile
   use InputFieldTrait;
   use SetValueTrait;
 
-  private static $filesData = [];
+  private static array $filesData = [];
 
   public static function type()
   {

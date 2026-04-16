@@ -9,9 +9,9 @@ use ProcessWire\GraphQL\Cache;
 
 class FileType {
 
-  public static $name = 'File';
+  public static string $name = 'File';
 
-  public static $description = 'ProcessWire PageFile.';
+  public static string $description = 'ProcessWire PageFile.';
 
   public static function &type()
   {

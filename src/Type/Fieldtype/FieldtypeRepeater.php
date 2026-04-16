@@ -15,9 +15,9 @@ class FieldtypeRepeater
   use InputFieldTrait;
   use SetValueTrait;
 
-  public static $name = 'Repeater';
+  public static string $name = 'Repeater';
 
-  public static $description = 'Maintains a collection of fields that are repeated for any number of times.';
+  public static string $description = 'Maintains a collection of fields that are repeated for any number of times.';
 
   public static function type($field)
   {

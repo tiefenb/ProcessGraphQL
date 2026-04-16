@@ -8,7 +8,7 @@ use ProcessWire\Page;
 
 class PagesBuffer
 {
-  private static $pageIDs = [];
+  private static array $pageIDs = [];
 
   public static function loadPages($group, $options)
   {

@@ -3,18 +3,19 @@
 use GraphQL\Type\Definition\InputObjectType;
 use GraphQL\Type\Definition\Type;
 use ProcessWire\Page;
+use ProcessWire\Field;
 use ProcessWire\FieldtypePage;
 use ProcessWire\GraphQL\Cache;
 use ProcessWire\GraphQL\Utils;
 
 class InputfieldPage
 {
-  public static function getName()
+  public static function getName(): string
   {
     return 'InputfieldPage';
   }
 
-  public static function getDescription($field = null)
+  public static function getDescription(?Field $field = null): string
   {
     $desc = '';
     if ($field !== null) {

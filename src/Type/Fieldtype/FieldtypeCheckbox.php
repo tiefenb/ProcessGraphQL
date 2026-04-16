@@ -12,9 +12,9 @@ class FieldtypeCheckbox
   use InputFieldTrait;
   use SetValueTrait;
   
-  public static $name = 'Checkbox';
+  public static string $name = 'Checkbox';
 
-  public static $description = 'An ON/OFF toggle via a single checkbox.';
+  public static string $description = 'An ON/OFF toggle via a single checkbox.';
 
   public static function type()
   {

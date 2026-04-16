@@ -11,9 +11,9 @@ class FieldtypeDatetime
 { 
   use InputFieldTrait;
 
-  public static $name = 'DateTime';
+  public static string $name = 'DateTime';
 
-  public static $description = 'A string that represends a date and optionally time.';
+  public static string $description = 'A string that represends a date and optionally time.';
 
   public static function type()
   {

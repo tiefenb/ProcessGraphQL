@@ -19,7 +19,7 @@ use ProcessWire\GraphQL\Field\Language;
 
 class Schema
 {
-  private static $schema = null;
+  private static ?GraphQLSchema $schema = null;
 
   public static function getSchema()
   {

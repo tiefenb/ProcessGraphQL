@@ -16,9 +16,9 @@ use ProcessWire\GraphQL\Type\SelectorType;
 
 class PageType
 {
-  private static $emptyUser;
+  private static ?WireData $emptyUser = null;
 
-  public static function &type($template = null)
+  public static function &type(?Template $template = null)
   {
     $type = null;
     if ($template instanceof Template) {

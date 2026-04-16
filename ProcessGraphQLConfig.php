@@ -93,6 +93,14 @@ class ProcessGraphQLConfig extends Moduleconfig {
        * @var integer
        */
       'maxQueryComplexity' => 0,
+
+      /**
+       * Allow advanced selector fields (include, check_access, status_id) in
+       * GraphQL queries. Enables querying hidden/unpublished pages and bypassing
+       * access checks. Only enable for trusted/internal APIs.
+       * @var boolean
+       */
+      'allowAdvancedSelectors' => false,
     );
   }
 
@@ -324,6 +332,13 @@ class ProcessGraphQLConfig extends Moduleconfig {
     $f->description = $desc;
     $inputfields->add($f);
 
+    // allowAdvancedSelectors
+    $f = $this->modules->get('InputfieldCheckbox');
+    $f->attr('name', 'allowAdvancedSelectors');
+    $f->label = 'Allow Advanced Selectors';
+    $f->columnWidth = 50;
+    $f->description = "Allows the `include`, `check_access` and `status_id` selector fields in GraphQL queries. Enables querying hidden or unpublished pages and bypassing access checks.";
+    $f->notes = "Only enable this for trusted or internal APIs. The `force_access` and `instance_id` selectors are always blocked.";
     $inputfields->add($f);
 
     return $inputfields;

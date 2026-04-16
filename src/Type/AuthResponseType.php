@@ -6,7 +6,7 @@ use ProcessWire\GraphQL\Cache;
 
 class AuthResponseType
 {
-  public static $name = 'AuthResponse';
+  public static string $name = 'AuthResponse';
   
   public static function type()
   {

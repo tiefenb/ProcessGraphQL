@@ -16,11 +16,11 @@ class FieldtypeOptions
   use FieldTrait;
   use SetValueTrait;
 
-  public static $name = 'FieldtypeOptions';
+  public static string $name = 'FieldtypeOptions';
 
-  public static $inputName = 'FieldtypeOptionsInput';
+  public static string $inputName = 'FieldtypeOptionsInput';
 
-  public static $description = 'Field that stores single and multi select options.';
+  public static string $description = 'Field that stores single and multi select options.';
 
   public static function type($field)
   {

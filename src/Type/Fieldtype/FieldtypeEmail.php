@@ -12,9 +12,9 @@ class FieldtypeEmail
   use InputFieldTrait;
   use SetValueTrait;
 
-  public static $name = 'Email';
+  public static string $name = 'Email';
 
-  public static $description = 'E-Mail address in valid format';
+  public static string $description = 'E-Mail address in valid format';
 
   public static function type()
   {

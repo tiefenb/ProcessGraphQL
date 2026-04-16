@@ -3,6 +3,7 @@
 use GraphQL\Type\Definition\InputObjectType;
 use GraphQL\Type\Definition\Type;
 use ProcessWire\Page;
+use ProcessWire\Field;
 use ProcessWire\NullPage;
 use ProcessWire\GraphQL\Cache;
 use ProcessWire\GraphQL\InputType\PageCreateInputType;
@@ -12,12 +13,12 @@ use ProcessWire\GraphQL\Utils;
 
 class InputfieldRepeater
 {
-  public static function getName($field)
+  public static function getName(Field $field): string
   {
     return Utils::normalizeTypeName("{$field->name}RepeaterInput");
   }
 
-  public static function getDescription($field = null)
+  public static function getDescription(?Field $field = null): string
   {
     $desc = '';
     if ($field !== null) {

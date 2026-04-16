@@ -8,9 +8,4 @@ class ExecutionError extends \Exception implements ClientAware
   {
     return true;
   }
-
-  public function getCategory()
-  {
-    return 'execution';
-  }
 }

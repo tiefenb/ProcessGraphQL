@@ -21,9 +21,9 @@ class EmptyImage extends WireData {
 
 class ImageType {
 
-  public static $name = 'Image';
+  public static string $name = 'Image';
 
-  public static $description = 'ProcessWire PageImage.';
+  public static string $description = 'ProcessWire PageImage.';
 
   public static function &type()
   {

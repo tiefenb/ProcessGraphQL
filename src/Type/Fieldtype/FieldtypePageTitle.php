@@ -12,9 +12,9 @@ class FieldtypePageTitle
   use InputFieldTrait;
   use SetValueTrait;
 
-  public static $name = 'PageTitle';
+  public static string $name = 'PageTitle';
 
-  public static $description = 'Field that stores a page title';
+  public static string $description = 'Field that stores a page title';
 
   public static function type($field)
   {

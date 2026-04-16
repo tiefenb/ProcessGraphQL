@@ -7,9 +7,9 @@ use ProcessWire\GraphQL\Type\Fieldtype\FieldtypeEmail;
 
 class UserType
 {
-  public static $name = 'User';
+  public static string $name = 'User';
 
-  public static $description = 'ProcessWire User.';
+  public static string $description = 'ProcessWire User.';
 
   public static function type()
   {

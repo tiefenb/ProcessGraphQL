@@ -7,16 +7,16 @@ class Cache
   /**
    * Type caching
    */
-  private static $typeStore = [];
+  private static array $typeStore = [];
 
-  public static function &type(string $name, $build = null)
+  public static function &type(string $name, ?callable $build = null)
   {
     if (isset(self::$typeStore[$name])) {
       return self::$typeStore[$name];
     }
 
     if ($build === null || !is_callable($build)) {
-      throw \Exception("The second argument for Cache::type() should be a callable.");
+      throw new \Exception("The second argument for Cache::type() should be a callable.");
     }
 
     self::$typeStore[$name] = Utils::placeholder();
@@ -33,16 +33,16 @@ class Cache
   /**
    * Field caching
    */
-  private static $fieldStore = [];
+  private static array $fieldStore = [];
 
-  public static function &field(string $name, $build = null)
+  public static function &field(string $name, ?callable $build = null)
   {
     if (isset(self::$fieldStore[$name])) {
       return self::$fieldStore[$name];
     }
 
     if ($build === null || !is_callable($build)) {
-      throw \Exception("The second argument for Cache::field() should be a callable.");
+      throw new \Exception("The second argument for Cache::field() should be a callable.");
     }
 
     self::$fieldStore[$name] = Utils::placeholder();

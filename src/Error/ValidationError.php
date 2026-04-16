@@ -8,9 +8,4 @@ class ValidationError extends \Exception implements ClientAware
   {
     return true;
   }
-
-  public function getCategory()
-  {
-    return 'validation';
-  }
 }

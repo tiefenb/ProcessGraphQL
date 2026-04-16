@@ -12,11 +12,11 @@ use ProcessWire\GraphQL\Permissions;
 
 class SelectorType
 {
-  public static $name = 'Selector';
+  public static string $name = 'Selector';
 
-  public static $description = 'ProcessWire selector.';
+  public static string $description = 'ProcessWire selector.';
 
-  private static $parsedValues = [];
+  private static array $parsedValues = [];
 
   public static function type()
   {
@@ -60,8 +60,14 @@ class SelectorType
 
     $selectors = new Selectors($value);
 
-    // forbidden selectors
-    $forbidden = ['check_access', 'include', 'force_access', 'instance_id', 'status_id'];
+    // always forbidden selectors
+    $forbidden = ['force_access', 'instance_id'];
+
+    // conditionally forbidden selectors (configurable via module settings)
+    if (!Utils::module()->allowAdvancedSelectors) {
+      $forbidden = array_merge($forbidden, ['include', 'check_access', 'status_id']);
+    }
+
     foreach ($forbidden as $field) {
       if (self::findSelectorByField($selectors, $field)) {
         throw new Error("The selector field '$field' is not allowed.");
