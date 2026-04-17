@@ -19,7 +19,7 @@ class InputfieldPage
   {
     $desc = '';
     if ($field !== null) {
-      $desc = $field->description;
+      $desc = $field->description ?? '';
     }
     return $desc;
   }

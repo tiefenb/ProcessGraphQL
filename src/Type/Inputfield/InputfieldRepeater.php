@@ -22,7 +22,7 @@ class InputfieldRepeater
   {
     $desc = '';
     if ($field !== null) {
-      $desc = $field->description;
+      $desc = $field->description ?? '';
     }
     return $desc;
   }
