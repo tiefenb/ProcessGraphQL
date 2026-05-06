@@ -26,7 +26,7 @@ This document is for AI agents (and humans) working on the ProcessGraphQL codeba
 ## Development Workflow
 
 ### Prerequisites
-- PHP >= 7.4
+- PHP >= 8.3 (tested on PHP 8.5)
 - Composer
 - Node.js & NPM
 

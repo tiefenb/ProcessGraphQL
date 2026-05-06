@@ -8,7 +8,7 @@ use ProcessWire\GraphQL\Type\ImageType;
 $autoload = $this->config->paths->site . 'modules/ProcessGraphQL/vendor/autoload.php';
 if (file_exists($autoload)) require_once $autoload;
 
-class ProcessGraphQLConfig extends Moduleconfig {
+class ProcessGraphQLConfig extends ModuleConfig {
 
   const generatorName = 'graphql_generate_pages';
 

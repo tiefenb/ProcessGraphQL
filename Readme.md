@@ -30,7 +30,7 @@ See more [demo here](https://github.com/dadish/ProcessGraphQL/blob/main/ScreenCa
 ## Requirements
 
 - ProcessWire version >= 3.0.62
-- PHP version >= 7.1
+- PHP version >= 8.3 (tested on PHP 8.5)
 
 > It would be very helpful if you open an issue when encounter errors regarding environment incompatibilities.
 
