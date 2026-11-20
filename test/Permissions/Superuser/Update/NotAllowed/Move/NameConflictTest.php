@@ -25,7 +25,7 @@ class NameConflictTest extends GraphqlTestCase
 
   public static function setUpBeforeClass(): void
   {
-    $skyscraper = Utils::pages()->get("template=skyscraper, sort=random");
+    $skyscraper = Utils::pages()->get("template=skyscraper, status<trash, sort=random");
     self::$skyscraper = $skyscraper;
     self::$originalName = $skyscraper->name;
     parent::setUpBeforeClass();
@@ -44,10 +44,10 @@ class NameConflictTest extends GraphqlTestCase
   {
     $skyscraper = self::$skyscraper;
     $newParent = Utils::pages()->get(
-      "template=city, id!={$skyscraper->parentID}, sort=random"
+      "template=city, id!={$skyscraper->parentID}, children.count>0, sort=random"
     );
     $futureSibling = Utils::pages()->get(
-      "template=skyscraper, sort=random, parent={$newParent}"
+      "template=skyscraper, status<trash, sort=random, parent={$newParent}"
     );
     $skyscraper->of(true);
     $skyscraper->name = $futureSibling->name;
