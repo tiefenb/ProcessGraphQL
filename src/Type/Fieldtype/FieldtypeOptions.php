@@ -73,19 +73,22 @@ class FieldtypeOptions
   public static function inputType(Context $context, Field $field): EnumType|ListOfType
   {
     return $context->types->type(self::getName($field), function () use ($field) {
-      $options = [];
-      foreach ($field->type->getOptions($field) as $option) {
-        $key = $option->title ?: $option->value;
-        $options[$key] = [
-          'value' => $key,
-          'description' => $option->value,
-        ];
-      }
-
       $type = new EnumType([
         'name' => self::getName($field),
         'description' => "Possible values for the " . self::NAME . ".",
-        'values' => $options,
+        // lazy: the options are only loaded from the database when the enum
+        // is actually used by an operation (mutation input or introspection)
+        'values' => static function () use ($field): array {
+          $options = [];
+          foreach ($field->type->getOptions($field) as $option) {
+            $key = $option->title ?: $option->value;
+            $options[$key] = [
+              'value' => $key,
+              'description' => $option->value,
+            ];
+          }
+          return $options;
+        },
       ]);
 
       return self::isMultiple($field) ? Type::listOf($type) : $type;

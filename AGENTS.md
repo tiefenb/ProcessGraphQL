@@ -84,8 +84,11 @@ Check `src/Type/Fieldtype/` to see existing implementations.
 
 ## Known Issues / Todo
 - **N+1 Problems:** Repeater fields are still loaded per page.
-- **Schema caching:** The schema is rebuilt for every execution (~1ms). It could be
-  cached per user/role set if that ever becomes relevant.
+- **Schema caching:** Deliberately not done. The schema is built per execution, which
+  costs well under 1ms and no database queries (types and enum values are lazy). It
+  holds closures bound to the Context, so it cannot be serialized between requests; an
+  in-memory cache per role set would only help long running workers and would need
+  invalidation on template, field and permission changes.
 
 ## Useful Commands
 - `composer dump-autoload`: Regenerate autoloader after adding classes.
