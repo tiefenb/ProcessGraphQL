@@ -3,7 +3,6 @@
 use GraphQL\Deferred;
 use GraphQL\Type\Definition\ListOfType;
 use GraphQL\Type\Definition\Type;
-use ProcessWire\DatabaseQuerySelect;
 use ProcessWire\Field;
 use ProcessWire\GraphQL\Context;
 use ProcessWire\GraphQL\Type\FileType;
@@ -54,56 +53,23 @@ class FieldtypeFile
   /**
    * Loads the raw file rows of the given pages into the context.
    *
+   * `$pages->findRaw()` returns every column of the field table (including
+   * the ones added by FieldtypeImage or custom file fields) in `sort` order,
+   * with a single query for all pages.
+   *
    * @param int[] $pageIDs
    */
   public static function loadFilesData(Context $context, array $pageIDs, Field $field): void
   {
+    $pageIDs = array_values(array_unique(array_map('intval', $pageIDs)));
     if (empty($pageIDs)) {
       return;
     }
 
-    $database = $context->database();
-    $fieldType = $field->type;
-    $fieldName = $database->escapeCol($field->name);
-    $schema = $fieldType->getDatabaseSchema($field);
-    $table = $database->escapeTable($field->table);
-    $stmt = null;
+    $rows = $context->pages()->findRaw($pageIDs, $field->name);
 
-    $query = $fieldType->wire(new DatabaseQuerySelect());
-    $query = $fieldType->getLoadQuery($field, $query);
-    $query->select("$table.pages_id AS `{$fieldName}__pages_id`"); // QA
-    $ids = implode(', ', array_map('intval', $pageIDs));
-    $query->where("$table.pages_id IN ($ids)");
-    $query->from($table);
-
-    try {
-      $stmt = $query->prepare();
-      $result = $database->execute($stmt);
-    } catch (\Exception $e) {
-      $result = false;
-      $fieldType->trackException($e, false, true);
-    }
-
-    if (!$result) {
-      return;
-    }
-
-    unset($schema['keys'], $schema['xtra'], $schema['sort']);
-    $values = [];
-
-    while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
-      $value = [];
-      foreach ($schema as $k => $unused) {
-        $value[$k] = $row["{$fieldName}__{$k}"];
-      }
-      $pageID = $value['pages_id'];
-      unset($value['pages_id']);
-      $values[$pageID][] = $value;
-    }
-
-    $stmt->closeCursor();
-
-    $context->files[$field->name] = $values;
+    // pages without files come back as empty (non array) values
+    $context->files[$field->name] = array_filter($rows, fn($value) => is_array($value) && $value);
   }
 
   public static function getFieldValue(Context $context, Page $page, Field $field)
