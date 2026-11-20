@@ -44,6 +44,9 @@ class FieldtypeFile
         $context->buffer->clear($field->name);
         if ($ids) {
           self::loadFilesData($context, $ids, $field);
+          // ProcessWire looks up the access template of every page to
+          // decide if its files are secured
+          $context->buffer->preloadAccessParents($ids);
         }
         return self::getFieldValue($context, $page, $field);
       });

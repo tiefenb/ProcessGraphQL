@@ -33,7 +33,7 @@ class DbQueryCountTest extends GraphQLTestCase
    *
    * @var integer
    */
-  public static $bestQueryCount = 25;
+  public static $bestQueryCount = 17;
 
   /**
    * The query we use to test the performance of the module by counting

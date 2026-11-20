@@ -54,6 +54,44 @@ final class PagesBuffer
     }
   }
 
+  /**
+   * Loads the ancestors that ProcessWire needs to find the access template of
+   * the given (already loaded) pages, one query level at a time.
+   *
+   * A page whose template does not define access inherits it from its closest
+   * ancestor that does. ProcessWire loads those ancestors one by one, e.g. to
+   * decide if the files of a page are secured, which is one load per parent.
+   *
+   * @param int[] $pageIDs
+   */
+  public function preloadAccessParents(array $pageIDs): void
+  {
+    $pages = $this->context->pages();
+    $seen = [];
+
+    // the depth of the page tree is the upper bound, 20 is a safety net
+    for ($level = 0; $level < 20 && $pageIDs; $level++) {
+      $parentIDs = [];
+      foreach ($pageIDs as $id) {
+        $page = $pages->getCache((int) $id);
+        if (!$page || $page->template?->useRoles) {
+          continue;
+        }
+        $parentID = (int) $page->parent_id;
+        if ($parentID > 0 && !isset($seen[$parentID])) {
+          $seen[$parentID] = true;
+          $parentIDs[] = $parentID;
+        }
+      }
+
+      $missing = array_values(array_filter($parentIDs, fn($id) => !$pages->getCache($id)));
+      if ($missing) {
+        $pages->getByIDs($missing);
+      }
+      $pageIDs = $parentIDs;
+    }
+  }
+
   public function clear(string $group): void
   {
     $this->pageIDs[$group] = [];
