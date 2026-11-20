@@ -45,16 +45,11 @@ class BatchTest extends GraphQLTestCase
 
   private static function runQuery(array $ids): array
   {
-    Utils::pages()->uncacheAll();
-    $db = Utils::database();
-    // start with an empty query log, it stops growing at $config->dbQueryLogMax
-    $db->queryLog(true);
-    $res = self::execute('{
+    return self::executeAndCountQueries('{
       listAll(s: "id=' . implode("|", $ids) . ', sort=id") {
         list { id slides { list { id title body } } }
       }
     }');
-    return [$res, count($db->queryLog())];
   }
 
   public function testRepeaterItemsAreLoadedInBatches()

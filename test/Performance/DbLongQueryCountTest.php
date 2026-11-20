@@ -73,12 +73,10 @@ class DbLongQueryCountTest extends GraphQLTestCase
   public function testShortVsLongQuery()
   {
     $query = self::$longQuery;
-    $queryCountStart = count(Utils::database()->queryLog());
-    self::execute($query["query"], $query["variables"]);
-    $queryCountEnd = count(Utils::database()->queryLog());
-    $queryCount = $queryCountEnd - $queryCountStart;
+    [$res, $queryCount] = self::executeAndCountQueries($query["query"], $query["variables"]);
 
     \ProcessWire\GraphQL\log($queryCount, "LongQueryCount");
-    self::assertGreaterThan($queryCountStart, $queryCountEnd);
+    self::assertObjectNotHasProperty("errors", $res, "There are errors.");
+    self::assertGreaterThan(0, $queryCount, "No database queries were counted.");
   }
 }

@@ -33,7 +33,7 @@ class DbQueryCountTest extends GraphQLTestCase
    *
    * @var integer
    */
-  public static $bestQueryCount = 29;
+  public static $bestQueryCount = 25;
 
   /**
    * The query we use to test the performance of the module by counting
@@ -79,13 +79,11 @@ class DbQueryCountTest extends GraphQLTestCase
 
   public function testDbQueryCount()
   {
-    $queryCountStart = count(Utils::database()->queryLog());
-    $res = self::execute(
+    [$res, $queryCount] = self::executeAndCountQueries(
       self::$performanceQuery["query"],
       self::$performanceQuery["variables"]
     );
-    $queryCountEnd = count(Utils::database()->queryLog());
-    $queryCount = $queryCountEnd - $queryCountStart;
+    self::assertGreaterThan(0, $queryCount, "No database queries were counted.");
 
     // report
     $queryCountReport = "Query Count:\n$queryCount\n";

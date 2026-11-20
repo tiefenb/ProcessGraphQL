@@ -302,6 +302,22 @@ abstract class GraphqlTestCase extends TestCase
     return json_decode(json_encode($res), false);
   }
 
+  /**
+   * Executes the request with an empty page cache and counts its database queries.
+   *
+   * The query log is emptied first: it stops growing at $config->dbQueryLogMax,
+   * so the difference of its length before and after is not reliable.
+   *
+   * @return array{0: object, 1: int} The response and the number of queries
+   */
+  public static function executeAndCountQueries($payload = null, $variables = null): array
+  {
+    $database = Utils::database();
+    Utils::pages()->uncacheAll();
+    $database->queryLog(true);
+    $res = self::execute($payload, $variables);
+    return [$res, count($database->queryLog())];
+  }
 
 }
 
