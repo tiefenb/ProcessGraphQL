@@ -102,6 +102,12 @@ class ProcessGraphQLConfig extends ModuleConfig {
        * @var boolean
        */
       'allowAdvancedSelectors' => false,
+
+      /**
+       * Allows clients to send several operations in one request (JSON list).
+       * @var boolean
+       */
+      'queryBatching' => false,
     );
   }
 
@@ -314,6 +320,13 @@ class ProcessGraphQLConfig extends ModuleConfig {
     $f->label = 'Max Query Complexity';
     $f->description = 'Set the maximum complexity for GraphQL queries. 0 for no limit.';
     $f->required = true;
+    $inputfields->add($f);
+
+    // queryBatching
+    $f = $this->modules->get('InputfieldCheckbox');
+    $f->attr('name', 'queryBatching');
+    $f->label = 'Query Batching';
+    $f->description = 'Allows clients to send several GraphQL operations as a JSON list in one request. Depth and complexity limits apply to each operation.';
     $inputfields->add($f);
 
     // meQuery

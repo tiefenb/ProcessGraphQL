@@ -122,7 +122,16 @@ $result = $modules->get('ProcessGraphQL')->executeGraphQL();
 echo json_encode($result);
 ```
 
-This will automatically capture the GraphQL request from your client and respond to it. If you need some manual control on this `executeGraphQL` accepts `$query` & `$variables` arguments and it will respond to them instead of trying to guess query from the client. This allows you to modify the request from the client before passing it to ProcessGraphQL. Here how it might look like.
+This will automatically capture the GraphQL request from your client and respond to it. Requests are handled by the [graphql-php server][webonyx-graphql] and can be sent as:
+
+- `POST` with `Content-Type: application/json` (`query`, `variables`, `operationName`)
+- `POST` with `Content-Type: application/graphql` (the body is the query)
+- `POST` form data (`query` or the legacy `payload`, `variables` as JSON string)
+- `GET` with the same parameters in the URL. GET requests can only run queries, mutations are rejected.
+
+Several operations can be sent as a JSON list in one request, if the __Query Batching__ module setting is enabled. The response is a list of results then.
+
+If you need some manual control on this `executeGraphQL` accepts `$query` & `$variables` arguments and it will respond to them instead of trying to guess query from the client. This allows you to modify the request from the client before passing it to ProcessGraphQL. Here how it might look like.
 
 ```php
 <?php

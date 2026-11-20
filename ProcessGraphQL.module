@@ -1,7 +1,13 @@
 <?php namespace ProcessWire;
 
-use GraphQL\GraphQL;
 use GraphQL\Error\DebugFlag;
+use GraphQL\Error\Error;
+use GraphQL\Executor\ExecutionResult;
+use GraphQL\Server\Helper;
+use GraphQL\Server\OperationParams;
+use GraphQL\Server\RequestError;
+use GraphQL\Server\ServerConfig;
+use GraphQL\Server\StandardServer;
 use GraphQL\Type\Schema as GraphQLSchema;
 use GraphQL\Validator\Rules\QueryDepth;
 use GraphQL\Validator\Rules\QueryComplexity;
@@ -154,65 +160,125 @@ class ProcessGraphQL extends Process implements Module {
 	}
 
 	/**
-	 * Retrieves the GraphQL request. Either from php://input or from $_POST.
-	 * @return array An array with two properties inside. `payload` which is a
-	 * GraphQL payload, that includes all operations, including query, mutation...
-	 * And `variables` which is a variables object.
-	 * NOTE: Both `payload` and `variables` are raw strings, that are ready to be consumed
-	 * by `executeGraphQL` method
+	 * Parses the GraphQL request of the current HTTP request.
+	 *
+	 * Supports:
+	 * - GET with `query`, `variables`, `operationName` (queries only, no mutations)
+	 * - POST `application/json`, also batched as a JSON list (if enabled)
+	 * - POST `application/graphql` (the body is the query)
+	 * - POST form data (`application/x-www-form-urlencoded`, `multipart/form-data`)
+	 *
+	 * For backwards compatibility `payload` is accepted as alias of `query`.
+	 *
+	 * @param callable|null $readRawBody Returns the raw request body (default: php://input)
+	 * @return OperationParams|OperationParams[]
+	 * @throws RequestError
 	 */
-	public function getRequest()
+	public function getRequest(?callable $readRawBody = null): OperationParams|array
 	{
-		if (isset($_SERVER['CONTENT_TYPE']) && strpos($_SERVER['CONTENT_TYPE'], 'application/json') !== false) {
-				$rawBody     = file_get_contents('php://input');
-				$requestData = json_decode($rawBody ?: '', true);
-		} else {
-				$requestData = $_POST;
-		}
-		$payload = isset($requestData['query']) ? $requestData['query'] : "";
-		if (empty($payload)) {
-			$payload = isset($requestData['payload']) ? $requestData['payload'] : "";
-		}
-		$variables = isset($requestData['variables']) ? $requestData['variables'] : null;
+		$method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+		$contentType = strtolower((string) ($_SERVER['CONTENT_TYPE'] ?? ''));
+		$readRawBody ??= fn() => (string) file_get_contents('php://input');
+		$bodyParams = [];
 
-		// in case the post is a form data, parse the variables string.
-		if (is_string($variables)) {
-			$variables = json_decode($variables, true);
+		if ($method === 'POST') {
+			if (str_contains($contentType, 'application/json')) {
+				$rawBody = $readRawBody();
+				try {
+					$bodyParams = $rawBody === '' ? [] : json_decode($rawBody, true, 512, JSON_THROW_ON_ERROR);
+				} catch (\JsonException $e) {
+					throw new RequestError('Could not parse JSON body: ' . $e->getMessage());
+				}
+				if (!is_array($bodyParams)) {
+					throw new RequestError('GraphQL server expects a JSON object or array as request body.');
+				}
+			} elseif (str_contains($contentType, 'application/graphql')) {
+				$bodyParams = ['query' => $readRawBody()];
+			} else {
+				$bodyParams = $_POST;
+			}
 		}
-		return [
-			'payload' => $payload,
-			'variables' => $variables
-		];
+
+		$queryParams = self::withQueryAlias($_GET);
+		$bodyParams = array_is_list($bodyParams) && $bodyParams
+			? array_map(fn($op) => is_array($op) ? self::withQueryAlias($op) : $op, $bodyParams)
+			: self::withQueryAlias($bodyParams);
+
+		return (new Helper())->parseRequestParams($method, $bodyParams, $queryParams);
 	}
 
-  /**
-   * Executes GraphQL api.
-   * @return string GraphQL api JSON response.
-   */
-	public function ___executeGraphQL($payload = "", $variables = null)
+	/**
+	 * Maps the legacy `payload` parameter to `query`.
+	 */
+	private static function withQueryAlias(array $params): array
 	{
-		if (!$payload) {
-			$request = $this->getRequest();
-			$payload = $request['payload'];
-			$variables = $request['variables'];
+		if (empty($params['query']) && !empty($params['payload'])) {
+			$params['query'] = $params['payload'];
 		}
+		unset($params['payload']);
+		return $params;
+	}
 
+	/**
+	 * Executes the GraphQL request.
+	 *
+	 * With a $payload the given query is executed. Without it, the request is
+	 * read from the current HTTP request (see getRequest()). Batched requests
+	 * return a list of results.
+	 *
+	 * @param string $payload GraphQL query
+	 * @param array|null $variables
+	 * @param string|null $operationName
+	 * @return array GraphQL response (`data`, `errors`), or a list of them for batches
+	 */
+	public function ___executeGraphQL($payload = "", $variables = null, $operationName = null)
+	{
 		// every execution gets its own context and schema
 		$context = $this->createContext();
-		$schema = $this->getSchema($context);
-		$context->permissions->turnOnApiAccess();
 
-		$result = GraphQL::executeQuery(
-			$schema,
-			$payload,
-			$context->pages(),
-			$context,
-			$variables,
-			null,
-			null,
-			$this->getValidationRules()
-		);
-		return $result->toArray($this->getDebugFlag());
+		try {
+			$operations = $payload
+				? OperationParams::create([
+						'query' => $payload,
+						'variables' => $variables,
+						'operationName' => $operationName,
+					])
+				: $this->getRequest();
+
+			$context->permissions->turnOnApiAccess();
+			$result = $this->createServer($context)->executeRequest($operations);
+		} catch (RequestError $e) {
+			$result = new ExecutionResult(null, [Error::createLocatedError($e)]);
+		}
+
+		// the server already formats errors with the debug flag
+		return is_array($result)
+			? array_map(fn(ExecutionResult $r) => $r->toArray(), $result)
+			: $result->toArray();
+	}
+
+	/**
+	 * The graphql-php server for the given context: schema, root value (the
+	 * $pages API variable), context value, validation rules, debug flag and
+	 * query batching setting.
+	 */
+	public function ___createServer(Context $context): StandardServer
+	{
+		$config = ServerConfig::create()
+			->setSchema($this->getSchema($context))
+			// $pages is callable (Pages::__invoke), which the server would treat as a
+			// root value factory, so it is wrapped in a real factory
+			->setRootValue(fn() => $context->pages())
+			->setContext($context)
+			->setDebugFlag($this->getDebugFlag())
+			->setQueryBatching((bool) $this->queryBatching);
+
+		$validationRules = $this->getValidationRules();
+		if ($validationRules !== null) {
+			$config->setValidationRules($validationRules);
+		}
+
+		return new StandardServer($config);
 	}
 
 	/**
