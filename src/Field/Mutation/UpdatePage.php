@@ -48,9 +48,16 @@ class UpdatePage
     $id = (int) $values['id'];
     $p = $pages->get($id);
 
-    // make sure the target page exists
-    if ($p instanceof NullPage) {
-      throw new ValidationError("Could not find the page `$p` to update.");
+    // make sure the target page exists and uses the template this
+    // mutation was generated (and permission checked) for
+    if ($p instanceof NullPage || $p->template->id !== $template->id) {
+      throw new ValidationError("Could not find the page `$id` to update.");
+    }
+
+    // make sure ProcessWire itself considers the page editable by the user
+    // (covers system pages, page-edit-created and per-page access rules)
+    if (!$p->editable()) {
+      throw new ValidationError("You are not allowed to update the page '{$p->id}'.");
     }
 
     // if page-edit-created permission is installed and user has that permission

@@ -60,19 +60,7 @@ class SelectorType
 
     $selectors = new Selectors($value);
 
-    // always forbidden selectors
-    $forbidden = ['force_access', 'instance_id'];
-
-    // conditionally forbidden selectors (configurable via module settings)
-    if (!Utils::module()->allowAdvancedSelectors) {
-      $forbidden = array_merge($forbidden, ['include', 'check_access', 'status_id']);
-    }
-
-    foreach ($forbidden as $field) {
-      if (self::findSelectorByField($selectors, $field)) {
-        throw new Error("The selector field '$field' is not allowed.");
-      }
-    }
+    self::assertAllowedFields($selectors);
 
     // make sure the limit field is not greater than max allowed
     $maxLimit = Utils::module()->maxLimit;
@@ -119,6 +107,59 @@ class SelectorType
     // return selector as string
     self::$parsedValues[$key] = (string) $selectors;
     return self::$parsedValues[$key];
+  }
+
+  /**
+   * Returns the selector fields the client is not allowed to use.
+   *
+   * @return string[]
+   */
+  public static function getForbiddenFields(): array
+  {
+    // always forbidden selectors
+    $forbidden = ['force_access', 'instance_id'];
+
+    // selectors that change which pages are visible: status/include/access.
+    // Only allowed if explicitly enabled via module settings.
+    if (!Utils::module()->allowAdvancedSelectors) {
+      $forbidden = [
+        ...$forbidden,
+        'include',
+        'status',
+        'status_id',
+        'check_access',
+        'checkAccess',
+      ];
+    }
+
+    return $forbidden;
+  }
+
+  /**
+   * Throws if the selectors (including nested sub-selectors like
+   * `field=[...]` and OR-groups `(...)`) use a forbidden field.
+   *
+   * @throws Error
+   */
+  public static function assertAllowedFields(Selectors $selectors, ?array $forbidden = null): void
+  {
+    $forbidden ??= array_flip(self::getForbiddenFields());
+    foreach ($selectors as $selector) {
+      foreach ($selector->fields as $field) {
+        if (isset($forbidden[$field])) {
+          throw new Error("The selector field '$field' is not allowed.");
+        }
+      }
+
+      // nested selectors: field=[sub selector] and (or, groups)
+      if ($selector->quote === '[' || $selector->quote === '(') {
+        foreach ($selector->values as $nested) {
+          if (is_string($nested) && str_contains($nested, '=')) {
+            self::assertAllowedFields(new Selectors($nested), $forbidden);
+          }
+        }
+      }
+    }
   }
 
   public static function findSelectorByField(Selectors $selectors, $target)
