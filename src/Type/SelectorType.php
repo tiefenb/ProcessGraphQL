@@ -65,7 +65,7 @@ class SelectorType
     self::assertAllowedFields($selectors);
 
     // make sure the limit field is not greater than max allowed
-    $limitSelector = self::findSelectorByField($selectors, 'limit');
+    $limitSelector = $selectors->getSelectorByField('limit', true);
     if ($limitSelector instanceof Selector) {
       if ($maxLimit < $limitSelector->value) $limitSelector->set('value', $maxLimit);
     } else {
@@ -74,7 +74,7 @@ class SelectorType
     }
 
     // make sure to limit the search to legal templates only
-    $templateSelector = self::findSelectorByField($selectors, 'template');
+    $templateSelector = $selectors->getSelectorByField('template', true);
     $legalTemplates = Permissions::getViewTemplates();
     $names = [];
     
@@ -163,14 +163,12 @@ class SelectorType
     }
   }
 
+  /**
+   * @deprecated Use ProcessWire's `$selectors->getSelectorByField($field, true)`.
+   */
   public static function findSelectorByField(Selectors $selectors, $target)
   {
-    foreach ($selectors as $selector) {
-      foreach ($selector->fields as $field) {
-        if ($field === $target) return $selector;
-      }
-    }
-    return null;
+    return $selectors->getSelectorByField($target, true);
   }
 
   public static function getCacheKeyForSelector(string $selector, ?int $maxLimit = null)

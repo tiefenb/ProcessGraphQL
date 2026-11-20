@@ -26,9 +26,9 @@ class ImageType {
 
   public static string $description = 'ProcessWire PageImage.';
 
-  public static function &type()
+  public static function type()
   {
-    $type =& Cache::type(self::$name, function () {
+    $type = Cache::type(self::$name, function () {
       return new ObjectType([
         'name' => self::$name,
         'description' => self::$description,
@@ -42,7 +42,7 @@ class ImageType {
 
   public static function getBuiltInFields()
   {
-    $type =& self::type();
+    $type = self::type();
     return [
       [
         'name' => 'width',
@@ -97,19 +97,11 @@ class ImageType {
       
           // if user has no rights to create the image then she
           // might be asking for variation already created
-          $variations = $value->getVariations();
-          foreach ($variations as $variation) {
-            if ($width && $variation->width !== $width) {
-              continue;
-            }
-            
-            if ($height && $variation->height !== $height) {
-              continue;
-            }
-            
-            return $variation;
-          }
-          return new EmptyImage();
+          return array_find(
+            $value->getVariations()->getArray(),
+            fn($variation) => (!$width || $variation->width === $width)
+              && (!$height || $variation->height === $height)
+          ) ?? new EmptyImage();
         }
       ]
     ];

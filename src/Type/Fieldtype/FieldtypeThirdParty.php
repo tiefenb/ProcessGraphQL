@@ -7,18 +7,18 @@ class FieldtypeThirdParty
 {
   use FieldTrait;
 
-  public static function &type($field)
+  public static function type($field)
   {
     $thirdPartyClassName = self::getThirdPartyClassName($field);
-    $type =& Cache::type("type--{$field->name}", function () use ($field, $thirdPartyClassName) {
+    $type = Cache::type("type--{$field->name}", function () use ($field, $thirdPartyClassName) {
       return $thirdPartyClassName::getType($field);
     });
     return $type;
   }
 
-  public static function &inputField($field)
+  public static function inputField($field)
   {
-    $inputType =& Cache::field("input--{$field->name}", function () use ($field) {
+    $inputType = Cache::field("input--{$field->name}", function () use ($field) {
       $fieldSettings = self::field($field);
       $thirdPartyClassName = self::getThirdPartyClassName($field);
       if ($thirdPartyClassName !== null && method_exists($thirdPartyClassName, 'getInputType')) {

@@ -27,9 +27,9 @@ class FieldtypeRepeater
     return PageArrayType::type($template);
   }
 
-  public static function &field($field)
+  public static function field($field)
   {
-    $field =& Cache::field($field->name, function () use ($field) {
+    $field = Cache::field($field->name, function () use ($field) {
       // description
       $desc = $field->description;
       if (!$desc) {

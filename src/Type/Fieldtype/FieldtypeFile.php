@@ -114,7 +114,7 @@ class FieldtypeFile
     $value = [];
     if (isset($filesData[$id])) {
       $value = $filesData[$id];
-      $value = $field->type->_callHookMethod('wakeupValue', array($page, $field, $value));
+      $value = $field->type->wakeupValue($page, $field, $value);
       $value = $field->type->sanitizeValue($page, $field, $value);
     }
     return $value;

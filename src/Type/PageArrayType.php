@@ -13,13 +13,13 @@ use ProcessWire\GraphQL\Utils;
 use ProcessWire\NullPage;
 
 class PageArrayType {
-	public static function &type(?Template $template = null)
+	public static function type(?Template $template = null)
 	{
 		$type = null;
 		if ($template instanceof Template) {
-			$type =& self::templateType($template);
+			$type = self::templateType($template);
 		} else {
-			$type =& Cache::type(self::getName(), function () {
+			$type = Cache::type(self::getName(), function () {
 				return new ObjectType([
 					'name' => self::getName(),
 					'description' => self::getDescription(),
@@ -63,9 +63,9 @@ class PageArrayType {
 		return $type;
 	}
 
-	public static function &templateType(Template $template)
+	public static function templateType(Template $template)
 	{
-		$type =& Cache::type(self::getName($template), function () use ($template) {
+		$type = Cache::type(self::getName($template), function () use ($template) {
 			return new ObjectType([
 				'name' => self::getName($template),
 				'description' => self::getDescription($template),
@@ -129,7 +129,7 @@ class PageArrayType {
 
 	public static function field(Template $template)
 	{
-		$type =& self::type($template);
+		$type = self::type($template);
 		return [
 			'name' => Utils::normalizeFieldName($template->name),
 			'description' => self::getDescription($template),

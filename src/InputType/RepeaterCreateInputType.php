@@ -7,13 +7,13 @@ use ProcessWire\GraphQL\InputType\PageCreateInputType;
 
 class RepeaterCreateInputType
 { 
-  public static function &type(Template $template)
+  public static function type(Template $template)
   {  
-    $type =& Cache::type(PageCreateInputType::getName($template), function () use ($template) {
+    $type = Cache::type(PageCreateInputType::getName($template), function () use ($template) {
       return new InputObjectType([
         'name' => PageCreateInputType::getName($template),
         'description' => "CreateInputType for pages with template `{$template->name}`.",
-        'fields' => self::getFields($template),
+        'fields' => fn() => self::getFields($template),
       ]);
     });
    

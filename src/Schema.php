@@ -21,9 +21,15 @@ class Schema
 {
   private static ?GraphQLSchema $schema = null;
 
+  /**
+   * The schema depends on the user's permissions, so it is only reused
+   * for the user it was built for.
+   */
+  private static ?int $schemaUserId = null;
+
   public static function getSchema()
   {
-    if (self::$schema === null) {
+    if (self::$schema === null || self::$schemaUserId !== (int) Utils::user()->id) {
       self::build();
     }
 
@@ -49,6 +55,7 @@ class Schema
     $schema = Utils::module()->modifySchema($schema);
 
     self::$schema = new GraphQLSchema($schema);
+    self::$schemaUserId = (int) Utils::user()->id;
   }
 
   public static function buildQuery()

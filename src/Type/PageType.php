@@ -24,26 +24,20 @@ class PageType
 
   private static ?WireData $emptyUser = null;
 
-  public static function &type(?Template $template = null)
+  public static function type(?Template $template = null)
   {
     $type = null;
     if ($template instanceof Template) {
-      $type =& self::templateType($template);
+      $type = self::templateType($template);
     } else {
-      $type =& Cache::type(self::getName(), function () use ($type) {
+      $type = Cache::type(self::getName(), function () {
         return new InterfaceType([
           'name' => self::getName(),
           'description' => self::getDescription(),
-          'fields' => function () {
-            return self::getLegalBuiltInFields();
-          },
-          'resolveType' => function($value) use ($type) {
-            $resolvedType = $type;
-            if ($value->id && $value->template instanceof Template) {
-              $resolvedType =& self::templateType($value->template);
-            }
-            return $resolvedType;
-          }
+          'fields' => fn() => self::getLegalBuiltInFields(),
+          'resolveType' => fn($value) => $value->id && $value->template instanceof Template
+            ? self::templateType($value->template)
+            : null,
         ]);
       });
     }
@@ -53,7 +47,7 @@ class PageType
 
   public static function getBuiltInFields()
   {
-    $type =& self::type();
+    $type = self::type();
     return [
       self::resolvePagefieldWithSelector([
         'name' => 'child',
@@ -182,27 +176,20 @@ class PageType
   public static function getLegalBuiltInFields()
   {
     $builtInFields = self::getBuiltInFields();
-    return array_filter($builtInFields, function ($field) {
-      return in_array($field['name'], Utils::module()->legalPageFields);
-    });
+    $legal = array_flip(Utils::module()->legalPageFields);
+    return array_filter($builtInFields, fn($field) => isset($legal[$field['name']]));
   }
 
-  public static function &templateType(Template $template)
+  public static function templateType(Template $template)
   {
-    $temlpateType =& Cache::type(self::getName($template), function () use ($template) {
-      $type =& self::type();
+    return Cache::type(self::getName($template), function () use ($template) {
       return new ObjectType([
         'name' => self::getName($template),
         'description' => self::getDescription($template),
-        'fields' => function () use ($template) {
-          return self::getFields($template);
-        },
-        'interfaces' => [
-          $type
-        ]
+        'fields' => fn() => self::getFields($template),
+        'interfaces' => fn() => [self::type()],
       ]);
     });
-    return $temlpateType;
   }
 
   public static function getFields(Template $template)
@@ -210,10 +197,10 @@ class PageType
     $fields = [];
 
     // add the template fields
-    $legalFields = Utils::module()->legalFields;
+    $legalFields = array_flip(Utils::module()->legalFields);
     foreach ($template->fields as $field) {
-      // skip illigal fields
-      if (!in_array($field->name, $legalFields)) {
+      // skip illegal fields
+      if (!isset($legalFields[$field->name])) {
         continue;
       }
 

@@ -17,13 +17,13 @@ class PageCreateInputType
     return Utils::normalizeTypeName("{$template->name}CreateInput");
   }
   
-  public static function &type(Template $template)
+  public static function type(Template $template)
   {  
-    $type =& Cache::type(self::getName($template), function () use ($template) {
+    $type = Cache::type(self::getName($template), function () use ($template) {
       return new InputObjectType([
         'name' => self::getName($template),
         'description' => "CreateInputType for pages with template `{$template->name}`.",
-        'fields' => self::getFields($template),
+        'fields' => fn() => self::getFields($template),
       ]);
     });
    

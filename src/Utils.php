@@ -208,15 +208,6 @@ class Utils
     return null;
   }
 
-  /**
-   * Used for circular dependant types. Until the type is built in full this
-   * placeholder is used. See Cache::type() for an example.
-   */
-  public static function placeholder()
-  {
-    return "placeholder";
-  }
-
   public static function normalizeFieldName($name)
   {
     return Utils::sanitizer()->camelCase($name);

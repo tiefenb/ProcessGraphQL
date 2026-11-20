@@ -119,13 +119,12 @@ class CreatePage
     }
 
     // create the page
-    $pageClass =
-      Utils::templates()->getPageClass($template) ?: "\\ProcessWire\\Page";
-    $p = new $pageClass();
+    $p = $pages->newPage([
+      'template' => $template,
+      'parent' => $parent,
+      'name' => $name,
+    ]);
     $p->of(false);
-    $p->template = $template;
-    $p->parent = $parent;
-    $p->name = $name;
 
     // set the values from client
     unset($values["parent"]);

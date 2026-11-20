@@ -13,9 +13,9 @@ class FileType {
 
   public static string $description = 'ProcessWire PageFile.';
 
-  public static function &type()
+  public static function type()
   {
-    $type =& Cache::type(self::$name, function () {
+    $type = Cache::type(self::$name, function () {
       return new ObjectType([
         'name' => self::$name,
         'description' => self::$description,
