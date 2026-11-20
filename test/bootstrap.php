@@ -108,8 +108,9 @@ $pages->addHookBefore('find', function ($event) {
 	}
 });
 
-// Suppress deprecation warnings from ProcessWire core during tests
-error_reporting(E_ALL & ~E_DEPRECATED & ~E_USER_DEPRECATED);
+// Report everything, PHPUnit only lists deprecations triggered by the
+// module's own code (see <source> in phpunit.xml)
+error_reporting(E_ALL);
 
 // include phpunit assertion functions
 require_once realpath("$baseDir/vendor/phpunit/phpunit/src/Framework/Assert/Functions.php");

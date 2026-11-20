@@ -5,9 +5,7 @@ namespace ProcessWire\GraphQL\Test\Performance;
 use ProcessWire\GraphQL\Test\GraphQLTestCase;
 use ProcessWire\GraphQL\Utils;
 
-/**
- * @group performance
- */
+#[\PHPUnit\Framework\Attributes\Group('performance')]
 class DbLongQueryCountTest extends GraphQLTestCase
 {
   public static function getSettings()

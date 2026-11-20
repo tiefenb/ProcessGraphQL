@@ -36,7 +36,7 @@ class EditTrashCreatedTest extends GraphqlTestCase
 
   public static function setUpBeforeClass(): void
   {
-    $skyscraper = Utils::pages()->get("template=skyscraper, sort=random");
+    $skyscraper = Utils::pages()->get("template=skyscraper, status<trash, sort=random");
     $skyscraper->template->allowChangeUser = 1;
     $skyscraper->of(false);
     $skyscraper->created_users_id = Utils::users()->get("editor")->id;

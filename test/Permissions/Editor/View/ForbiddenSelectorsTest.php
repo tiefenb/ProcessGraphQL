@@ -49,9 +49,6 @@ class ForbiddenSelectorsTest extends GraphqlTestCase
     ];
   }
 
-  /**
-   * @dataProvider forbiddenSelectorProvider
-   */
   #[\PHPUnit\Framework\Attributes\DataProvider('forbiddenSelectorProvider')]
   public function testForbiddenSelector(string $selector)
   {

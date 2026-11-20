@@ -16,10 +16,10 @@ class PageArrayFirstTest extends GraphQLTestCase
   public function testValue()
   {
     $firstCity = Utils::pages()
-      ->find("template=city")
+      ->find("template=city, sort=name")
       ->first();
     $query = "{
-  		city {
+  		city (s: \"sort=name\") {
   			first {
           name
           id

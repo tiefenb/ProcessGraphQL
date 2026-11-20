@@ -4,7 +4,7 @@
          bootstrap="test/bootstrap.php"
          colors="true"
          cacheDirectory=".phpunit.cache"
-         displayDetailsOnTestsThatTriggerDeprecations="false"
+         displayDetailsOnTestsThatTriggerDeprecations="true"
          displayDetailsOnTestsThatTriggerErrors="true"
          displayDetailsOnTestsThatTriggerNotices="false"
          displayDetailsOnTestsThatTriggerWarnings="false"
@@ -15,8 +15,15 @@
             <exclude>test/Performance</exclude>
         </testsuite>
     </testsuites>
+    <source ignoreIndirectDeprecations="true">
+        <include>
+            <directory suffix=".php">src</directory>
+            <file>ProcessGraphQL.module</file>
+            <file>ProcessGraphQLConfig.php</file>
+        </include>
+    </source>
     <php>
-        <ini name="error_reporting" value="24575" />
+        <ini name="error_reporting" value="-1" />
         <ini name="display_errors" value="1" />
         <ini name="display_startup_errors" value="1" />
     </php>

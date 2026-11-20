@@ -19,7 +19,7 @@ class TemplateTest extends GraphqlTestCase
 
   public function testPermission()
   {
-    $skyscraper = Utils::pages()->get("template=skyscraper, sort=random");
+    $skyscraper = Utils::pages()->get("template=skyscraper, status<trash, sort=random");
     $query = 'mutation trashPage($id: ID!) {
       trash(id: $id) {
         id
