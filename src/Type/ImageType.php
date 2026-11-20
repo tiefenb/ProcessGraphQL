@@ -2,6 +2,7 @@
 
 namespace ProcessWire\GraphQL\Type;
 
+use ProcessWire\WireArray;
 use ProcessWire\WireData;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type;

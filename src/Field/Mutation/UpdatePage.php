@@ -166,9 +166,6 @@ class UpdatePage
       throw new ExecutionError($err->getMessage());
     }
     return $pages->get("$p");
-
-    // If we did not return till now then no good!
-    throw new ExecutionError("Could not update page `$name` with template `{$template->name}`");
   }
 }
 

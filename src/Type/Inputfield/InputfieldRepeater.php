@@ -90,12 +90,12 @@ class InputfieldRepeater
       foreach ($value['update'] as $updateValues) {
         $id = $updateValues['id'];
         $r = $page->$fieldName->get("id=$id");
-        $r->of(false);
 
         // skip if the repeater item cannot be found
         if ($r instanceof NullPage) {
           continue;
         }
+        $r->of(false);
         // unset the id from updateValues
         unset($updateValues['id']);
 

@@ -1,6 +1,7 @@
 <?php namespace ProcessWire\GraphQL\Type\Fieldtype;
 
 use ProcessWire\Page;
+use ProcessWire\NullPage;
 use ProcessWire\Selectors;
 use ProcessWire\GraphQL\Type\Inputfield\InputfieldRepeater;
 use ProcessWire\GraphQL\Cache;

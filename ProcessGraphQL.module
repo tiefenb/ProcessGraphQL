@@ -96,7 +96,7 @@ class ProcessGraphQL extends Process implements Module {
   {
     if ($this->config->ajax) {
     	$this->pages->setOutputFormatting(true);
-    	return json_encode($this->executeGraphQL(), true);
+    	return json_encode($this->executeGraphQL());
     }
 		return $this->executeGraphiQLPartial();
   }
@@ -213,7 +213,7 @@ class ProcessGraphQL extends Process implements Module {
 		$result = GraphQL::executeQuery($schema, $payload, $this->pages, null, $variables, null, null, $validationRules);
 		$debug = false;
 		if ($this->config->debug) {
-			$debug = $debug = DebugFlag::INCLUDE_DEBUG_MESSAGE | DebugFlag::INCLUDE_TRACE;
+			$debug = DebugFlag::INCLUDE_DEBUG_MESSAGE | DebugFlag::INCLUDE_TRACE;
 		}
 		$response = $result->toArray($debug);
 		return $response;

@@ -110,7 +110,7 @@ class FieldtypeFile
   {
     $id = (string) $page->id;
     $key = $field->name;
-    $filesData = self::$filesData[$key];
+    $filesData = self::$filesData[$key] ?? [];
     $value = [];
     if (isset($filesData[$id])) {
       $value = $filesData[$id];

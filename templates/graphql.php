@@ -2,4 +2,4 @@
 
 header('Content-Type: application/json');
 
-echo json_encode($modules->get('ProcessGraphQL')->executeGraphQL(), true);
+echo json_encode($modules->get('ProcessGraphQL')->executeGraphQL());

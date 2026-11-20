@@ -52,8 +52,15 @@ class FieldtypePage
             $finderOptions = PageArrayType::getFinderOptions($info);
             PagesBuffer::loadPages($field->name, $finderOptions);
             $fieldName = $field->name;
+            // temporarily read the value as PageArray, without changing the
+            // field setting for the rest of the request
+            $derefAsPage = $field->derefAsPage;
             $field->derefAsPage = PWFieldtypePage::derefAsPageArray;
-            $value = $value->$fieldName;
+            try {
+              $value = $value->$fieldName;
+            } finally {
+              $field->derefAsPage = $derefAsPage;
+            }
             if (!$value instanceof PageArray) {
               return new PageArray();
             }

@@ -53,9 +53,16 @@ class InputfieldPage
 
   public static function setValue(Page $page, $field, $value)
   {
-    $field->derefAsPage = FieldtypePage::derefAsPageArray;
     $fieldName = $field->name;
-    $fieldValue = $page->$fieldName;
+    // temporarily read the value as PageArray, without changing the
+    // field setting for the rest of the request
+    $derefAsPage = $field->derefAsPage;
+    $field->derefAsPage = FieldtypePage::derefAsPageArray;
+    try {
+      $fieldValue = $page->$fieldName;
+    } finally {
+      $field->derefAsPage = $derefAsPage;
+    }
     if (isset($value['add'])) {
       foreach ($value['add'] as $id) {
         $fieldValue->add(Utils::pages()->get($id));

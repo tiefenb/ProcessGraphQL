@@ -131,14 +131,14 @@ class PageCreateInputType
     foreach ($values as $fieldName => $value) {
       $field = Utils::fields()->get($fieldName);
 
-      // check if user has permission to edit this field
-      if (!Permissions::canEditField($field, $page->template)) {
-        throw new ValidationError("You are not allowed to update field '{$field->name}'");
-      }
-      
       // skip if field cannot be found
       if (!$field instanceof Field) {
         continue;
+      }
+
+      // check if user has permission to edit this field
+      if (!Permissions::canEditField($field, $page->template)) {
+        throw new ValidationError("You are not allowed to update field '{$field->name}'");
       }
 
       // skip if GraphQL class of a field is not found

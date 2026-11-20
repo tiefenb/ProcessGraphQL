@@ -14,10 +14,10 @@ class Logout
         $session = \ProcessWire\wire('session');
         $response = [];
         try {
-          $session = $session->logout();
+          $session->logout();
           $response['statusCode'] = 200;
           $response['message'] = 'Successful logout!';
-        } catch (Exception $error) {
+        } catch (\Throwable $error) {
           $response['statusCode'] = 500;
           $response['message'] = 'Could not logout: ' . $error->getMessage();
         }
