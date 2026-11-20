@@ -1,20 +1,15 @@
 <?php namespace ProcessWire\GraphQL\Type;
 
-use GraphQL\Type\Definition\ObjectType;
+use GraphQL\Deferred;
 use GraphQL\Type\Definition\InterfaceType;
+use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type;
-use ProcessWire\Page;
+use ProcessWire\GraphQL\Context;
+use ProcessWire\GraphQL\Utils;
 use ProcessWire\NullPage;
+use ProcessWire\Page;
 use ProcessWire\Template;
 use ProcessWire\WireData;
-use GraphQL\Deferred;
-use ProcessWire\GraphQL\Cache;
-use ProcessWire\GraphQL\PagesBuffer;
-use ProcessWire\GraphQL\Permissions;
-use ProcessWire\GraphQL\Utils;
-use ProcessWire\GraphQL\Type\UserType;
-use ProcessWire\GraphQL\Type\PageArrayType;
-use ProcessWire\GraphQL\Type\SelectorType;
 
 class PageType
 {
@@ -22,43 +17,49 @@ class PageType
 
   private const USER_BUFFER = '__pageUser';
 
-  private static ?WireData $emptyUser = null;
-
-  public static function type(?Template $template = null)
+  /**
+   * The `Page` interface, or the object type of the given template.
+   */
+  public static function type(Context $context, ?Template $template = null): InterfaceType|ObjectType
   {
-    $type = null;
     if ($template instanceof Template) {
-      $type = self::templateType($template);
-    } else {
-      $type = Cache::type(self::getName(), function () {
-        return new InterfaceType([
-          'name' => self::getName(),
-          'description' => self::getDescription(),
-          'fields' => fn() => self::getLegalBuiltInFields(),
-          'resolveType' => fn($value) => $value->id && $value->template instanceof Template
-            ? self::templateType($value->template)
-            : null,
-        ]);
-      });
+      return self::templateType($context, $template);
     }
 
-    return $type;
+    return $context->types->type(self::getName(), fn() => new InterfaceType([
+      'name' => self::getName(),
+      'description' => self::getDescription(),
+      'fields' => fn() => self::getLegalBuiltInFields($context),
+      'resolveType' => fn($value) => $value->id && $value->template instanceof Template
+        ? self::templateType($context, $value->template)
+        : null,
+    ]));
   }
 
-  public static function getBuiltInFields()
+  public static function templateType(Context $context, Template $template): ObjectType
   {
-    $type = self::type();
+    return $context->types->type(self::getName($template), fn() => new ObjectType([
+      'name' => self::getName($template),
+      'description' => self::getDescription($template),
+      'fields' => fn() => self::getFields($context, $template),
+      'interfaces' => fn() => [self::type($context)],
+    ]));
+  }
+
+  public static function getBuiltInFields(Context $context): array
+  {
+    $type = self::type($context);
     return [
-      self::resolvePagefieldWithSelector([
+      self::resolvePagefieldWithSelector($context, [
         'name' => 'child',
         'type' => $type,
         'description' => "The first child of this page. If the `s`(selector) argument is provided then the
                           first matching child (subpage) that matches the given selector. Returns a Page or null.",
       ]),
 
-      self::resolvePagefieldWithSelector([
+      self::resolvePagefieldWithSelector($context, [
         'name' => 'children',
-        'type' => PageArrayType::type(),
+        'type' => PageArrayType::type($context),
         'description' => "The number of children (subpages) this page has, optionally limiting to visible
                           pages. When argument `visible` true, number includes only visible children
                           (excludes unpublished, hidden, no-access, etc.)",
@@ -72,7 +73,7 @@ class PageType
 
       self::resolveUser([
         'name' => 'createdUser',
-        'type' => Type::nonNull(UserType::type()),
+        'type' => Type::nonNull(UserType::type($context)),
         'description' => 'The user that created this page.',
       ]),
 
@@ -96,7 +97,7 @@ class PageType
 
       self::resolveUser([
         'name' => 'modifiedUser',
-        'type' => Type::nonNull(UserType::type()),
+        'type' => Type::nonNull(UserType::type($context)),
         'description' => 'The user that last modified this page.',
       ]),
 
@@ -117,19 +118,12 @@ class PageType
             'type' => Type::boolean(),
           ],
         ],
-        'resolve' => function (Page $page, array $args) {
-          $visible = false;
-          if (isset($args['visible'])) {
-            $visible = $args['visible'];
-          }
-          if ($visible) {
-            return $page->numChildren($visible);
-          }
-          return $page->numChildren;
-        },
+        'resolve' => fn(Page $page, array $args) => !empty($args['visible'])
+          ? $page->numChildren(true)
+          : $page->numChildren,
       ],
 
-      self::resolvePagefieldWithSelector([
+      self::resolvePagefieldWithSelector($context, [
         'name' => 'parent',
         'type' => $type,
         'description' => 'The parent Page object, or the closest parent matching the given selector. Returns `null` if there is no parent or no match.'
@@ -141,9 +135,9 @@ class PageType
         'description' => 'The numbered ID of the parent page or 0 if none.',
       ],
 
-      self::resolvePagefieldWithSelector([
+      self::resolvePagefieldWithSelector($context, [
         'name' => 'parents',
-        'type' => Type::nonNull(PageArrayType::type()),
+        'type' => Type::nonNull(PageArrayType::type($context)),
         'description' => "Return this page's parent pages as PageArray. Optionally filtered by a selector.",
       ]),
 
@@ -153,9 +147,9 @@ class PageType
         'description' => "The page's URL path from the homepage (i.e. /about/staff/ryan/)",
       ],
 
-      self::resolveReferencesWithSelector([
+      self::resolveReferencesWithSelector($context, [
         'name' => 'references',
-        'type' => Type::nonNull(PageArrayType::type()),
+        'type' => Type::nonNull(PageArrayType::type($context)),
         'description' => "Return this page's parent pages as PageArray. Optionally filtered by a selector and a field name.",
       ]),
 
@@ -173,31 +167,21 @@ class PageType
     ];
   }
 
-  public static function getLegalBuiltInFields()
+  public static function getLegalBuiltInFields(Context $context): array
   {
-    $builtInFields = self::getBuiltInFields();
-    $legal = array_flip(Utils::module()->legalPageFields);
-    return array_filter($builtInFields, fn($field) => isset($legal[$field['name']]));
+    $legal = array_flip($context->module->legalPageFields);
+    return array_filter(
+      self::getBuiltInFields($context),
+      fn($field) => isset($legal[$field['name']])
+    );
   }
 
-  public static function templateType(Template $template)
-  {
-    return Cache::type(self::getName($template), function () use ($template) {
-      return new ObjectType([
-        'name' => self::getName($template),
-        'description' => self::getDescription($template),
-        'fields' => fn() => self::getFields($template),
-        'interfaces' => fn() => [self::type()],
-      ]);
-    });
-  }
-
-  public static function getFields(Template $template)
+  public static function getFields(Context $context, Template $template): array
   {
     $fields = [];
 
     // add the template fields
-    $legalFields = array_flip(Utils::module()->legalFields);
+    $legalFields = array_flip($context->module->legalFields);
     foreach ($template->fields as $field) {
       // skip illegal fields
       if (!isset($legalFields[$field->name])) {
@@ -205,7 +189,7 @@ class PageType
       }
 
       // check if user has permission to view this field
-      if (!Permissions::canViewField($field, $template)) {
+      if (!$context->permissions->canViewField($field, $template)) {
         continue;
       }
 
@@ -214,7 +198,7 @@ class PageType
         continue;
       }
 
-      $fieldSettings = $fieldClass::field($field);
+      $fieldSettings = $fieldClass::field($context, $field);
       if ($field->required) {
         $fieldSettings['type'] = Type::nonNull($fieldSettings['type']);
       }
@@ -222,14 +206,14 @@ class PageType
     }
 
     // add all the built in page fields
-    foreach (self::type()->getFields() as $field) {
+    foreach (self::type($context)->getFields() as $field) {
       $fields[] = $field;
     }
 
     return $fields;
   }
 
-  public static function getName(?Template $template = null)
+  public static function getName(?Template $template = null): string
   {
     if ($template instanceof Template) {
       return Utils::normalizeTypeName("{$template->name}Page");
@@ -238,28 +222,26 @@ class PageType
     return 'Page';
   }
 
-  public static function getDescription(?Template $template = null)
+  public static function getDescription(?Template $template = null): string
   {
     if ($template instanceof Template) {
-      $desc = $template->description;
-      if ($desc) return $desc;
-      return "PageType with template `" . $template->name . "`.";
+      return $template->description ?: "PageType with template `{$template->name}`.";
     }
     return 'ProcessWire Page.';
   }
 
-  public static function resolvePagefieldWithSelector(array $options)
+  public static function resolvePagefieldWithSelector(Context $context, array $options): array
   {
     return [...$options,
       'args' => [
         's' => [
-          'type' => SelectorType::type(),
+          'type' => SelectorType::type($context),
           'description' => "ProcessWire selector."
         ],
       ],
-      'resolve' => function (Page $page, array $args) use ($options) {
+      'resolve' => function (Page $page, array $args, Context $context) use ($options) {
         $name = $options['name'];
-        $selector = SelectorType::parseValue($args['s'] ?? "");
+        $selector = SelectorType::parseValue($context, $args['s'] ?? "");
         $resolve = function () use ($page, $name, $selector) {
           $result = $page->$name($selector);
           return $result instanceof NullPage ? null : $result;
@@ -267,9 +249,9 @@ class PageType
 
         // parents of all pages on this level are loaded with one query
         if ($name === 'parent' && $page->parent_id) {
-          PagesBuffer::add(self::PARENT_BUFFER, (int) $page->parent_id);
-          return new Deferred(function () use ($resolve) {
-            PagesBuffer::preload(self::PARENT_BUFFER);
+          $context->buffer->add(self::PARENT_BUFFER, (int) $page->parent_id);
+          return new Deferred(function () use ($context, $resolve) {
+            $context->buffer->preload(self::PARENT_BUFFER);
             return $resolve();
           });
         }
@@ -279,12 +261,12 @@ class PageType
     ];
   }
 
-  public static function resolveReferencesWithSelector(array $options)
+  public static function resolveReferencesWithSelector(Context $context, array $options): array
   {
     return [...$options,
       'args' => [
         's' => [
-          'type' => SelectorType::type(),
+          'type' => SelectorType::type($context),
           'description' => "ProcessWire selector."
         ],
         'f' => [
@@ -292,54 +274,44 @@ class PageType
           'description' => "ProcessWire field name."
         ]
       ],
-      'resolve' => function (Page $page, array $args) use ($options) {
+      'resolve' => function (Page $page, array $args, Context $context) use ($options) {
         $name = $options['name'];
-        $selector = "";
-        if (isset($args['s'])) {
-          $selector = SelectorType::parseValue($args['s']);
-        } else {
-          $selector = SelectorType::parseValue("");
-        }
-        $field = isset($args['f']) ? $args['f'] : "";
-        $result = $page->$name($selector, $field);
-        if ($result instanceof NullPage) return null;
-        return $result;
+        $selector = SelectorType::parseValue($context, $args['s'] ?? "");
+        $result = $page->$name($selector, $args['f'] ?? "");
+        return $result instanceof NullPage ? null : $result;
       }
     ];
   }
 
-  public static function getEmptyUser()
+  /**
+   * Placeholder for users that are not viewable by the current user.
+   */
+  public static function getEmptyUser(): WireData
   {
-    if (self::$emptyUser instanceof WireData) {
-      return self::$emptyUser;
-    }
     $value = new WireData();
     $value->name = '';
     $value->email = '';
     $value->id = '';
-
-    self::$emptyUser = $value;
-
     return $value;
   }
 
-  public static function resolveUser(array $options)
+  public static function resolveUser(array $options): array
   {
     return [...$options,
-      'resolve' => function (Page $page) use ($options) {
+      'resolve' => function (Page $page, array $args, Context $context) use ($options) {
         $name = $options['name'];
         $idProperty = $name === 'createdUser' ? 'created_users_id' : 'modified_users_id';
-        PagesBuffer::add(self::USER_BUFFER, (int) $page->$idProperty);
+        $context->buffer->add(self::USER_BUFFER, (int) $page->$idProperty);
 
         // users of all pages on this level are loaded with one query
-        return new Deferred(function () use ($page, $name) {
-          PagesBuffer::preload(self::USER_BUFFER);
+        return new Deferred(function () use ($page, $name, $context) {
+          $context->buffer->preload(self::USER_BUFFER);
           $result = $page->$name;
           if ($result instanceof NullPage) {
             return self::getEmptyUser();
           }
           if ($result instanceof Page) {
-            return Permissions::getViewTemplates()->has($result->template)
+            return $context->permissions->getViewTemplates()->has($result->template)
               ? $result
               : self::getEmptyUser();
           }
@@ -349,7 +321,7 @@ class PageType
     ];
   }
 
-  public static function resolveWithDateFormatter(array $options)
+  public static function resolveWithDateFormatter(array $options): array
   {
     return [...$options,
       'args' => [
@@ -362,13 +334,8 @@ class PageType
         $name = $options['name'];
 
         if (isset($args['format'])) {
-          $format = $args['format'];
           $rawValue = $page->$name;
-          if ($rawValue) {
-            return date($format, $rawValue);
-          } else {
-            return "";
-          }
+          return $rawValue ? date($args['format'], $rawValue) : "";
         }
 
         return $page->$name;

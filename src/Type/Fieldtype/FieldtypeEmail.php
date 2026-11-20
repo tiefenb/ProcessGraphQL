@@ -1,40 +1,30 @@
 <?php namespace ProcessWire\GraphQL\Type\Fieldtype;
 
 use GraphQL\Type\Definition\CustomScalarType;
-use ProcessWire\GraphQL\Cache;
+use ProcessWire\Field;
+use ProcessWire\GraphQL\Context;
 use ProcessWire\GraphQL\Type\Fieldtype\Traits\FieldTrait;
 use ProcessWire\GraphQL\Type\Fieldtype\Traits\InputFieldTrait;
 use ProcessWire\GraphQL\Type\Fieldtype\Traits\SetValueTrait;
 
 class FieldtypeEmail
-{ 
+{
   use FieldTrait;
   use InputFieldTrait;
   use SetValueTrait;
 
-  public static string $name = 'Email';
+  public const NAME = 'Email';
 
-  public static string $description = 'E-Mail address in valid format';
+  public const DESCRIPTION = 'E-Mail address in valid format';
 
-  public static function type()
+  public static function type(Context $context, ?Field $field = null): CustomScalarType
   {
-    return Cache::type(self::$name, function () {
-      return new CustomScalarType([
-        'name' => self::$name,
-        'description' => self::$description,
-        'serialize' => function ($value) {
-          if ($value) {
-            return (string) $value;
-          }
-          return "";
-        },
-        'parseValue' => function ($value) {
-          return (string) $value;
-        },
-        'parseLiteral' => function ($valueNode) {
-          return (string) $valueNode->value;
-        },
-      ]);
-    });
+    return $context->types->type(self::NAME, fn() => new CustomScalarType([
+      'name' => self::NAME,
+      'description' => self::DESCRIPTION,
+      'serialize' => fn($value) => $value ? (string) $value : "",
+      'parseValue' => fn($value) => (string) $value,
+      'parseLiteral' => fn($valueNode) => (string) $valueNode->value,
+    ]));
   }
 }

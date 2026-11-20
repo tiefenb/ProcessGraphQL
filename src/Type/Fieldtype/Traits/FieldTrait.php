@@ -1,23 +1,17 @@
 <?php namespace ProcessWire\GraphQL\Type\Fieldtype\Traits;
 
-use ProcessWire\GraphQL\Cache;
+use ProcessWire\Field;
+use ProcessWire\GraphQL\Context;
+use ProcessWire\GraphQL\Utils;
 
 trait FieldTrait
 {
-  public static function field($field)
+  public static function field(Context $context, Field $field): array
   {
-    return Cache::field($field->name, function () use ($field) {
-      // description
-      $desc = $field->description;
-      if (!$desc) {
-        $desc = "Field with the type of {$field->type}";
-      }
-
-      return [
-        'name' => $field->name,
-        'description' => $desc,
-        'type' => self::type($field),
-      ];
-    });
+    return $context->types->field($field->name, fn() => [
+      'name' => $field->name,
+      'description' => Utils::fieldDescription($field),
+      'type' => static::type($context, $field),
+    ]);
   }
 }

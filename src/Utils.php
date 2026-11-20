@@ -1,9 +1,11 @@
 <?php
 
 /**
- * Serves the same purpose as ProcessWire's Functions.php
- * This one here is in case we need to overwrite some functions
- * or add some more
+ * Stateless helpers (name normalization, fieldtype mapping, ...).
+ *
+ * The API shortcuts (pages(), module(), ...) return the API variables of the
+ * *current* ProcessWire instance and are meant for templates and tests. Module
+ * code uses the Context of the execution instead (`$context->pages()`).
  */
 
 namespace ProcessWire\GraphQL;
@@ -206,6 +208,14 @@ class Utils
     }
 
     return null;
+  }
+
+  /**
+   * The GraphQL description of a ProcessWire field.
+   */
+  public static function fieldDescription(Field $field): string
+  {
+    return $field->description ?: "Field with the type of {$field->type}";
   }
 
   public static function normalizeFieldName($name)

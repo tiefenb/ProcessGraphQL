@@ -2,26 +2,37 @@
 
 namespace ProcessWire\GraphQL;
 
-use ProcessWire\GraphQL\Utils;
 use ProcessWire\GraphQL\Type\SelectorType;
-use ProcessWire\Page;
+use ProcessWire\WireArray;
 
-class PagesBuffer
+/**
+ * Collects page ids of one query level, so that they can be loaded with a
+ * single query from a GraphQL\Deferred (avoids N+1 queries).
+ */
+final class PagesBuffer
 {
-  private static array $pageIDs = [];
+  /** @var array<string, int[]> */
+  private array $pageIDs = [];
 
-  public static function loadPages($group, $options)
+  public function __construct(private readonly Context $context)
   {
-    if (!isset(self::$pageIDs[$group]) || empty(self::$pageIDs[$group])) {
-      // nothing to load if there are no page ids
+  }
+
+  /**
+   * Loads the buffered pages of the group through the client selector rules
+   * (legal and viewable templates only) into ProcessWire's page cache.
+   */
+  public function loadPages(string $group, array $options = []): void
+  {
+    $ids = array_unique($this->pageIDs[$group] ?? []);
+    $this->clear($group);
+    if (!$ids) {
       return;
     }
-    $ids = array_unique(self::$pageIDs[$group]);
-    $selector = SelectorType::parseValue("", count($ids));
+    $selector = SelectorType::parseValue($this->context, "", count($ids));
     $selector .= ', id=' . implode('|', $ids);
     // the found pages only warm the page cache, no total is needed
-    Utils::pages()->find($selector, [...$options, 'getTotal' => false]);
-    self::clear($group);
+    $this->context->pages()->find($selector, [...$options, 'getTotal' => false]);
   }
 
   /**
@@ -29,55 +40,54 @@ class PagesBuffer
    * one query, so following $pages->get($id) calls are served from memory.
    * Access control is not applied here, callers have to check it themselves.
    */
-  public static function preload(string $group): void
+  public function preload(string $group): void
   {
-    $ids = array_values(array_unique(array_filter(self::$pageIDs[$group] ?? [])));
-    self::clear($group);
+    $ids = array_values(array_unique(array_filter($this->pageIDs[$group] ?? [])));
+    $this->clear($group);
     if (!$ids) {
       return;
     }
-    $pages = Utils::pages();
+    $pages = $this->context->pages();
     $ids = array_values(array_filter($ids, fn($id) => !$pages->getCache($id)));
     if ($ids) {
       $pages->getByIDs($ids);
     }
   }
 
-  public static function clear($group)
+  public function clear(string $group): void
   {
-    self::$pageIDs[$group] = [];
+    $this->pageIDs[$group] = [];
   }
 
-  public static function add($group, $_ids)
+  /**
+   * Adds page ids to the group.
+   *
+   * @param int|string|object|array<int|string|object> $_ids Id(s), "1|2|3", "1,2,3" or Page(s)
+   * @return int[] The sanitized ids that were added
+   */
+  public function add(string $group, mixed $_ids): array
   {
-    if(is_string($_ids)) {
-      // convert string of IDs to array
-			if(str_contains($_ids, '|')) $_ids = explode('|', $_ids);
-			else $_ids = explode(",", $_ids);
-		} else if(is_int($_ids) || is_object($_ids)) {
-			$_ids = array($_ids);
-		}
+    if (is_string($_ids)) {
+      $_ids = explode(str_contains($_ids, '|') ? '|' : ',', $_ids);
+    } elseif ($_ids instanceof WireArray) {
+      $_ids = $_ids->explode('id');
+    } elseif (is_int($_ids) || is_object($_ids)) {
+      $_ids = [$_ids];
+    }
 
-    // sanitize ids
     $ids = [];
     foreach ($_ids as $id) {
-      if (is_string($id)) {
-        $id = (int) $id;
-      } else if (is_object($id)) {
-        $id = $id->id;
-      }
-      $ids[] = (int) $id;
+      $ids[] = is_object($id) ? (int) $id->id : (int) $id;
     }
 
-    if (!isset(self::$pageIDs[$group])) {
-      self::$pageIDs[$group] = [];
-    }
-    array_push(self::$pageIDs[$group], ...$ids);
+    $this->pageIDs[$group] ??= [];
+    array_push($this->pageIDs[$group], ...$ids);
     return $ids;
   }
 
-  public static function get($group)
+  /** @return int[] */
+  public function get(string $group): array
   {
-    return self::$pageIDs[$group] ?? [];
+    return $this->pageIDs[$group] ?? [];
   }
 }

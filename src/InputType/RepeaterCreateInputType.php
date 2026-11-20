@@ -1,33 +1,27 @@
 <?php namespace ProcessWire\GraphQL\InputType;
 
 use GraphQL\Type\Definition\InputObjectType;
+use ProcessWire\GraphQL\Context;
 use ProcessWire\Template;
-use ProcessWire\GraphQL\Cache;
-use ProcessWire\GraphQL\InputType\PageCreateInputType;
 
 class RepeaterCreateInputType
-{ 
-  public static function type(Template $template)
-  {  
-    $type = Cache::type(PageCreateInputType::getName($template), function () use ($template) {
-      return new InputObjectType([
-        'name' => PageCreateInputType::getName($template),
-        'description' => "CreateInputType for pages with template `{$template->name}`.",
-        'fields' => fn() => self::getFields($template),
-      ]);
-    });
-   
-    return $type;
+{
+  public static function type(Context $context, Template $template): InputObjectType
+  {
+    $name = PageCreateInputType::getName($template);
+    return $context->types->type($name, fn() => new InputObjectType([
+      'name' => $name,
+      'description' => "CreateInputType for pages with template `{$template->name}`.",
+      'fields' => fn() => self::getFields($context, $template),
+    ]));
   }
 
-  public static function getFields(Template $template)
+  public static function getFields(Context $context, Template $template): array
   {
-    // add template fields
-    $fields = [...PageCreateInputType::getTemplateFields($template)];
-    
-    // mark required fields as nonNull
-    $fields = PageCreateInputType::markRequiredTemplateFields($fields, $template);
-
-    return $fields;
+    // template fields only, with required fields marked as nonNull
+    return PageCreateInputType::markRequiredTemplateFields(
+      PageCreateInputType::getTemplateFields($context, $template),
+      $template
+    );
   }
 }

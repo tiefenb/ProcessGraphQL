@@ -2,14 +2,14 @@
 
 use GraphQL\Type\Definition\InputObjectType;
 use GraphQL\Type\Definition\Type;
-use ProcessWire\Page;
 use ProcessWire\Field;
-use ProcessWire\NullPage;
-use ProcessWire\GraphQL\Cache;
+use ProcessWire\GraphQL\Context;
 use ProcessWire\GraphQL\InputType\PageCreateInputType;
 use ProcessWire\GraphQL\InputType\RepeaterCreateInputType;
 use ProcessWire\GraphQL\InputType\RepeaterUpdateInputType;
 use ProcessWire\GraphQL\Utils;
+use ProcessWire\NullPage;
+use ProcessWire\Page;
 
 class InputfieldRepeater
 {
@@ -20,22 +20,18 @@ class InputfieldRepeater
 
   public static function getDescription(?Field $field = null): string
   {
-    if ($field === null) {
-      return '';
-    }
-    return (string)($field->description ?? '');
+    return (string) ($field?->description ?? '');
   }
-  
-  public static function type($field)
+
+  public static function type(Context $context, Field $field): InputObjectType
   {
-    return Cache::type(self::getName($field), function () use ($field) {
-      $templateId = $field->get('template_id');
-      $template = Utils::templates()->get($templateId);
+    return $context->types->type(self::getName($field), function () use ($context, $field) {
+      $template = $context->templates()->get($field->get('template_id'));
       return new InputObjectType([
         'name' => self::getName($field),
-        'fields' => [
+        'fields' => fn() => [
           'add' => [
-            'type' => Type::listOf(RepeaterCreateInputType::type($template)),
+            'type' => Type::listOf(RepeaterCreateInputType::type($context, $template)),
             'description' => 'List of values that you want to add into your repeater field.',
           ],
           'remove' => [
@@ -43,68 +39,59 @@ class InputfieldRepeater
             'description' => "List of repeater items' ids that you would like to remove.",
           ],
           'update' => [
-            'type' => Type::listOf(RepeaterUpdateInputType::type($template)),
+            'type' => Type::listOf(RepeaterUpdateInputType::type($context, $template)),
             'description' => 'List of values for repeater items that you would like to update.',
-          ]
+          ],
         ],
       ]);
     });
   }
 
-  public static function inputField($field)
+  public static function inputField(Context $context, Field $field): array
   {
     return [
       'name' => $field->name,
       'description' => self::getDescription($field),
-      'type' => self::type($field),
+      'type' => self::type($context, $field),
     ];
   }
 
-  public static function setValue(Page $page, $field, $value)
+  public static function setValue(Context $context, Page $page, Field $field, $value): void
   {
     $fieldName = $field->name;
 
     // create repeaters
-    if (isset($value['add'])) {
-      foreach ($value['add'] as $createValues) {
-        $r = $page->$fieldName->getNew();
-        PageCreateInputType::setValues($r, $createValues);
-        $r->save();
-      }
+    foreach ($value['add'] ?? [] as $createValues) {
+      $r = $page->$fieldName->getNew();
+      PageCreateInputType::setValues($context, $r, $createValues);
+      $r->save();
     }
 
     // remove repeaters
-    if (isset($value['remove'])) {
-      foreach ($value['remove'] as $id) {
-        $r = $page->$fieldName->get("id=$id");
-        // skip if the repeater item cannot be found
-        if ($r instanceof NullPage) {
-          continue;
-        }
-        $page->$fieldName->remove($r);
+    foreach ($value['remove'] ?? [] as $id) {
+      $r = $page->$fieldName->get("id=" . (int) $id);
+      // skip if the repeater item cannot be found
+      if ($r instanceof NullPage) {
+        continue;
       }
+      $page->$fieldName->remove($r);
     }
 
     // update repeaters
-    if (isset($value['update'])) {
-      foreach ($value['update'] as $updateValues) {
-        $id = $updateValues['id'];
-        $r = $page->$fieldName->get("id=$id");
+    foreach ($value['update'] ?? [] as $updateValues) {
+      $r = $page->$fieldName->get("id=" . (int) $updateValues['id']);
 
-        // skip if the repeater item cannot be found
-        if ($r instanceof NullPage) {
-          continue;
-        }
-        $r->of(false);
-        // unset the id from updateValues
-        unset($updateValues['id']);
-
-        // set the new values
-        PageCreateInputType::setValues($r, $updateValues);
-
-        // save the repeater
-        $r->save();
+      // skip if the repeater item cannot be found
+      if ($r instanceof NullPage) {
+        continue;
       }
+      $r->of(false);
+
+      // unset the id from updateValues and set the new values
+      unset($updateValues['id']);
+      PageCreateInputType::setValues($context, $r, $updateValues);
+
+      $r->save();
     }
   }
 }

@@ -2,134 +2,122 @@
 
 use GraphQL\Type\Definition\InputObjectType;
 use GraphQL\Type\Definition\Type;
-use ProcessWire\Template;
 use ProcessWire\Field;
-use ProcessWire\Page;
-use ProcessWire\GraphQL\Cache;
+use ProcessWire\GraphQL\Context;
 use ProcessWire\GraphQL\Error\ValidationError;
-use ProcessWire\GraphQL\Permissions;
 use ProcessWire\GraphQL\Utils;
+use ProcessWire\Page;
+use ProcessWire\Template;
 
 class PageCreateInputType
 {
-  public static function getName(Template $template)
+  /**
+   * Input fields that are not supported for now.
+   */
+  private const UNSUPPORTED_FIELDTYPES = [
+    'FieldtypeFile',
+    'FieldtypeImage',
+  ];
+
+  public static function getName(Template $template): string
   {
     return Utils::normalizeTypeName("{$template->name}CreateInput");
   }
-  
-  public static function type(Template $template)
-  {  
-    $type = Cache::type(self::getName($template), function () use ($template) {
-      return new InputObjectType([
-        'name' => self::getName($template),
-        'description' => "CreateInputType for pages with template `{$template->name}`.",
-        'fields' => fn() => self::getFields($template),
-      ]);
-    });
-   
-    return $type;
+
+  public static function type(Context $context, Template $template): InputObjectType
+  {
+    return $context->types->type(self::getName($template), fn() => new InputObjectType([
+      'name' => self::getName($template),
+      'description' => "CreateInputType for pages with template `{$template->name}`.",
+      'fields' => fn() => self::getFields($context, $template),
+    ]));
   }
 
-  public static function getFields(Template $template)
+  public static function getFields(Context $context, Template $template): array
   {
     // add built in fields and template fields
-    $fields = [...self::getBuiltInFields(), ...self::getTemplateFields($template)];
-    
-    // mark required fields as nonNull
-    $fields = self::markRequiredTemplateFields($fields, $template);
+    $fields = [...self::getBuiltInFields(), ...self::getTemplateFields($context, $template)];
 
-    return $fields;
+    // mark required fields as nonNull
+    return self::markRequiredTemplateFields($fields, $template);
   }
 
-  public static function getTemplateFields(Template $template)
+  /**
+   * The legal template fields the user can edit, as input fields.
+   */
+  public static function getTemplateFields(Context $context, Template $template): array
   {
     $fields = [];
 
-    // the list of input fields we do not 
-    // support for now
-    $unsupportedFieldtypes = [
-      'FieldtypeFile',
-      'FieldtypeImage',
-    ];
-
-    $legalFieldsName = implode('|', Utils::module()->legalFields);
+    $legalFieldsName = implode('|', $context->module->legalFields);
     foreach ($template->fields->find("name=$legalFieldsName") as $field) {
-
-      // get the field's GraphQL input class
-      $className = $field->type->className();
-      if (in_array($className, $unsupportedFieldtypes)) {
+      if (in_array($field->type->className(), self::UNSUPPORTED_FIELDTYPES, true)) {
         continue;
       }
 
       // skip the fields that user has no edit permission to
-      if (!Permissions::canEditField($field, $template)) {
+      if (!$context->permissions->canEditField($field, $template)) {
         continue;
       }
 
-      $f = Utils::pwFieldToGraphqlClass($field);
-
       // ignore the field if it has no corresponding Graphql class
+      $f = Utils::pwFieldToGraphqlClass($field);
       if ($f === null) {
         continue;
       }
 
-      $inputField = $f::inputField($field);
+      $inputField = $f::inputField($context, $field);
       $fields[$inputField['name']] = $inputField;
     }
-
-    return $fields; 
-  }
-
-  public static function getBuiltInFields()
-  {
-    $fields = [];
-
-    // parent
-    $fields['parent'] = [
-      'name' => 'parent',
-      'type' => Type::string(),
-      'description' => 'Id or the path of the parent page.',
-    ];
-
-    // name
-    $fields['name'] = [
-      'name' => 'name',
-      'type' => Type::string(),
-      'description' => 'ProcessWire page name.',
-    ];
 
     return $fields;
   }
 
-  public static function markRequiredTemplateFields(array $fields, Template $template)
+  public static function getBuiltInFields(): array
+  {
+    return [
+      'parent' => [
+        'name' => 'parent',
+        'type' => Type::string(),
+        'description' => 'Id or the path of the parent page.',
+      ],
+      'name' => [
+        'name' => 'name',
+        'type' => Type::string(),
+        'description' => 'ProcessWire page name.',
+      ],
+    ];
+  }
+
+  public static function markRequiredTemplateFields(array $fields, Template $template): array
   {
     // mark parent and name as required if they are set
-    if (isset($fields['parent'])) {
-      $fields['parent']['type'] = Type::nonNull($fields['parent']['type']);
-    }
-    if (isset($fields['name'])) {
-      $fields['name']['type'] = Type::nonNull($fields['name']['type']);
+    foreach (['parent', 'name'] as $name) {
+      if (isset($fields[$name])) {
+        $fields[$name]['type'] = Type::nonNull($fields[$name]['type']);
+      }
     }
 
     // mark required fields as required
     foreach ($template->fields as $field) {
-      if (!isset($fields[$field->name])) {
-        continue;
+      if (isset($fields[$field->name]) && $field->required) {
+        $fields[$field->name]['type'] = Type::nonNull($fields[$field->name]['type']);
       }
-      if (!$field->required) {
-        continue;
-      }
-      $fields[$field->name]['type'] = Type::nonNull($fields[$field->name]['type']);
     }
 
     return $fields;
   }
 
-  public static function setValues(Page $page, array $values)
+  /**
+   * Sets the client values on the page, checking field edit permissions.
+   *
+   * @throws ValidationError
+   */
+  public static function setValues(Context $context, Page $page, array $values): void
   {
-    // update the values from client
+    $fields = $context->fields();
     foreach ($values as $fieldName => $value) {
-      $field = Utils::fields()->get($fieldName);
+      $field = $fields->get($fieldName);
 
       // skip if field cannot be found
       if (!$field instanceof Field) {
@@ -137,7 +125,7 @@ class PageCreateInputType
       }
 
       // check if user has permission to edit this field
-      if (!Permissions::canEditField($field, $page->template)) {
+      if (!$context->permissions->canEditField($field, $page->template)) {
         throw new ValidationError("You are not allowed to update field '{$field->name}'");
       }
 
@@ -147,8 +135,7 @@ class PageCreateInputType
         continue;
       }
 
-      // set value of a field
-      $f::setValue($page, $field, $value);
+      $f::setValue($context, $page, $field, $value);
     }
   }
 }

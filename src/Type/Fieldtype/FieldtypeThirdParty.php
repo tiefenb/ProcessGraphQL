@@ -1,47 +1,51 @@
 <?php namespace ProcessWire\GraphQL\Type\Fieldtype;
 
-use ProcessWire\GraphQL\Cache;
+use ProcessWire\Field;
+use ProcessWire\GraphQL\Context;
 use ProcessWire\GraphQL\Type\Fieldtype\Traits\FieldTrait;
+use ProcessWire\Page;
 
+/**
+ * Bridge to third-party modules named `GraphQL<FieldtypeClassName>`.
+ *
+ * Their contract is unchanged and context free:
+ * - `public static function getType(Field $field)`
+ * - `public static function getInputType(Field $field)` (optional)
+ * - `public static function setValue(Page $page, Field $field, $value)`
+ */
 class FieldtypeThirdParty
 {
   use FieldTrait;
 
-  public static function type($field)
+  public static function type(Context $context, ?Field $field = null)
   {
     $thirdPartyClassName = self::getThirdPartyClassName($field);
-    $type = Cache::type("type--{$field->name}", function () use ($field, $thirdPartyClassName) {
-      return $thirdPartyClassName::getType($field);
-    });
-    return $type;
+    return $context->types->type(
+      "type--{$field->name}",
+      fn() => $thirdPartyClassName::getType($field)
+    );
   }
 
-  public static function inputField($field)
+  public static function inputField(Context $context, Field $field): array
   {
-    $inputType = Cache::field("input--{$field->name}", function () use ($field) {
-      $fieldSettings = self::field($field);
+    return $context->types->field("input--{$field->name}", function () use ($context, $field) {
+      $fieldSettings = self::field($context, $field);
       $thirdPartyClassName = self::getThirdPartyClassName($field);
       if ($thirdPartyClassName !== null && method_exists($thirdPartyClassName, 'getInputType')) {
         $fieldSettings['type'] = $thirdPartyClassName::getInputType($field);
       }
       return $fieldSettings;
     });
-    return $inputType;
   }
 
-  public static function setValue($page, $field, $value)
+  public static function setValue(Context $context, Page $page, Field $field, $value): void
   {
-    $thirdPartyClassName = self::getThirdPartyClassName($field);
-    return $thirdPartyClassName::setValue($page, $field, $value);
+    self::getThirdPartyClassName($field)::setValue($page, $field, $value);
   }
 
-  public static function getThirdPartyClassName($field)
+  public static function getThirdPartyClassName(Field $field): ?string
   {
     $thirdPartyClassName = "\\ProcessWire\\GraphQL" . $field->type->className();
-    if (class_exists($thirdPartyClassName)) {
-      return $thirdPartyClassName;
-    } else {
-      return null;
-    }
+    return class_exists($thirdPartyClassName) ? $thirdPartyClassName : null;
   }
 }

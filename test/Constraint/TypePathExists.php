@@ -3,7 +3,6 @@
 namespace ProcessWire\GraphQL\Test\Constraint;
 
 use PHPUnit\Framework\Constraint\Constraint;
-use ProcessWire\GraphQL\Schema;
 use ProcessWire\GraphQL\Utils;
 
 class TypePathExists extends Constraint {
@@ -127,7 +126,6 @@ class TypePathExists extends Constraint {
 
   public static function getIntrospection()
   {
-    Schema::build();
     $res = Utils::module()->executeGraphQL(self::introspectionQuery);
     return json_decode(json_encode($res), false);
   }

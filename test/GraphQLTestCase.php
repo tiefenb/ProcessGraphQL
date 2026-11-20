@@ -5,7 +5,6 @@ namespace ProcessWire\GraphQL\Test;
 use PHPUnit\Framework\ExpectationFailedException;
 use PHPUnit\Framework\TestCase;
 use ProcessWire\GraphQL\Utils;
-use ProcessWire\GraphQL\Schema;
 use ProcessWire\Template;
 use ProcessWire\Field;
 
@@ -299,7 +298,6 @@ abstract class GraphqlTestCase extends TestCase
 
   public static function execute($payload = null, $variables = null)
   {
-    Schema::build();
     $res = Utils::module()->executeGraphQL($payload, $variables);
     return json_decode(json_encode($res), false);
   }

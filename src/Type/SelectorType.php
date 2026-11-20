@@ -1,113 +1,88 @@
 <?php namespace ProcessWire\GraphQL\Type;
 
 use GraphQL\Error\Error;
-use ProcessWire\Template;
-use ProcessWire\Selectors;
+use GraphQL\Type\Definition\CustomScalarType;
+use ProcessWire\GraphQL\Context;
 use ProcessWire\Selector;
 use ProcessWire\SelectorEqual;
-use ProcessWire\GraphQL\Utils;
-use ProcessWire\GraphQL\Cache;
-use GraphQL\Type\Definition\CustomScalarType;
-use ProcessWire\GraphQL\Permissions;
+use ProcessWire\Selectors;
+use ProcessWire\Template;
 
 class SelectorType
 {
-  public static string $name = 'Selector';
+  public const NAME = 'Selector';
 
-  public static string $description = 'ProcessWire selector.';
+  public const DESCRIPTION = 'ProcessWire selector.';
 
-  private static array $parsedValues = [];
-
-  public static function type()
+  public static function type(Context $context): CustomScalarType
   {
-    return Cache::type(self::$name, function () {
-      return new CustomScalarType([
-        'name' => self::$name,
-        'description' => self::$description,
-        'serialize' => function ($value) {
-          return (string) $value;
-        },
-        'parseValue' => function ($value) {
-          return (string) $value;
-        },
-        'parseLiteral' => function ($valueNode) {
-          return (string) $valueNode->value;
-        }
-      ]);
-    });
+    return $context->types->type(self::NAME, fn() => new CustomScalarType([
+      'name' => self::NAME,
+      'description' => self::DESCRIPTION,
+      'serialize' => fn($value) => (string) $value,
+      'parseValue' => fn($value) => (string) $value,
+      'parseLiteral' => fn($valueNode) => (string) $valueNode->value,
+    ]));
   }
 
   /**
-   * Parses an externally provided value (query variable) to use as an input
+   * Turns a client provided selector into a safe selector string:
+   * forbidden fields are rejected, `limit` is capped to $maxLimit (module
+   * setting by default) and the search is restricted to legal templates the
+   * current user can view.
    *
-   * @param mixed $value
-   * @return string
    * @throws Error
    */
-  public static function parseValue(string $value, ?int $maxLimit = null)
+  public static function parseValue(Context $context, string $value, ?int $maxLimit = null): string
   {
-    $maxLimit ??= (int) Utils::module()->maxLimit;
+    $maxLimit ??= (int) $context->module->maxLimit;
+    $legalTemplates = $context->permissions->getViewTemplates();
 
-    // if we already parsed the given selector
-    // then return the cached result.
-    $key = self::getCacheKeyForSelector($value, $maxLimit);
-    if (isset(self::$parsedValues[$key])) {
-      return self::$parsedValues[$key];
+    // the result depends on the selector, the limit and the viewable templates
+    $key = implode('--', [$value, $maxLimit, $legalTemplates->implode('-', 'name')]);
+    if (isset($context->selectors[$key])) {
+      return $context->selectors[$key];
     }
 
+    $selectors = self::newSelectors($context, $value);
 
-    if (!is_string($value)) {
-      throw new Error(self::$name . " should be a string.");
-    }
-
-    $selectors = new Selectors($value);
-
-    self::assertAllowedFields($selectors);
+    self::assertAllowedFields($context, $selectors);
 
     // make sure the limit field is not greater than max allowed
     $limitSelector = $selectors->getSelectorByField('limit', true);
     if ($limitSelector instanceof Selector) {
-      if ($maxLimit < $limitSelector->value) $limitSelector->set('value', $maxLimit);
+      if ($maxLimit < $limitSelector->value) {
+        $limitSelector->set('value', $maxLimit);
+      }
     } else {
-      $limitSelector = new SelectorEqual('limit', $maxLimit);
-      $selectors->add($limitSelector);
+      $selectors->add(new SelectorEqual('limit', $maxLimit));
     }
 
     // make sure to limit the search to legal templates only
     $templateSelector = $selectors->getSelectorByField('template', true);
-    $legalTemplates = Permissions::getViewTemplates();
-    $names = [];
-    
+
     if ($templateSelector instanceof Selector) {
-      // the user did specify `template` field in selector string
-      // filter out templates that are not legal
+      // the client specified `template`: keep only the legal ones
+      $names = [];
       foreach ($templateSelector->values as $templateName) {
         $template = $legalTemplates->get($templateName);
-        if ($template instanceof Template) $names[] = $template->name;
+        if ($template instanceof Template) {
+          $names[] = $template->name;
+        }
       }
 
-      if (!empty($names)) {
-        // at least one of the templates the user chose is legal
-        // let the user search those
+      if ($names) {
         $templateSelector->set('value', $names);
       } else {
-        // none of the templates the user chose is viewable by her.
-        // This means the result of the search should be empty PageArrayType;
-        $selectors = new Selectors("name=''");
+        // none of the requested templates is viewable: match nothing
+        $selectors = self::newSelectors($context, "name=''");
       }
-
     } else {
-      // The user did not specify the template field in selector string.
-      // That means she wants to see all the matching pages, but we add
-      // template field and set all the legal templates to narrow the
-      // search only to viewable pages
-      $templateSelector = new SelectorEqual('template', $legalTemplates->explode('name'));
-      $selectors->add($templateSelector);
+      // no template given: narrow the search to the viewable templates
+      $selectors->add(new SelectorEqual('template', $legalTemplates->explode('name')));
     }
 
-    // return selector as string
-    self::$parsedValues[$key] = (string) $selectors;
-    return self::$parsedValues[$key];
+    return $context->selectors[$key] = (string) $selectors;
   }
 
   /**
@@ -115,14 +90,14 @@ class SelectorType
    *
    * @return string[]
    */
-  public static function getForbiddenFields(): array
+  public static function getForbiddenFields(Context $context): array
   {
     // always forbidden selectors
     $forbidden = ['force_access', 'instance_id'];
 
     // selectors that change which pages are visible: status/include/access.
     // Only allowed if explicitly enabled via module settings.
-    if (!Utils::module()->allowAdvancedSelectors) {
+    if (!$context->module->allowAdvancedSelectors) {
       $forbidden = [
         ...$forbidden,
         'include',
@@ -142,9 +117,9 @@ class SelectorType
    *
    * @throws Error
    */
-  public static function assertAllowedFields(Selectors $selectors, ?array $forbidden = null): void
+  public static function assertAllowedFields(Context $context, Selectors $selectors, ?array $forbidden = null): void
   {
-    $forbidden ??= array_flip(self::getForbiddenFields());
+    $forbidden ??= array_flip(self::getForbiddenFields($context));
     foreach ($selectors as $selector) {
       foreach ($selector->fields as $field) {
         if (isset($forbidden[$field])) {
@@ -156,7 +131,7 @@ class SelectorType
       if ($selector->quote === '[' || $selector->quote === '(') {
         foreach ($selector->values as $nested) {
           if (is_string($nested) && str_contains($nested, '=')) {
-            self::assertAllowedFields(new Selectors($nested), $forbidden);
+            self::assertAllowedFields($context, self::newSelectors($context, $nested), $forbidden);
           }
         }
       }
@@ -164,26 +139,12 @@ class SelectorType
   }
 
   /**
-   * @deprecated Use ProcessWire's `$selectors->getSelectorByField($field, true)`.
+   * Creates Selectors bound to the ProcessWire instance of the context.
    */
-  public static function findSelectorByField(Selectors $selectors, $target)
+  private static function newSelectors(Context $context, string $selector): Selectors
   {
-    return $selectors->getSelectorByField($target, true);
-  }
-
-  public static function getCacheKeyForSelector(string $selector, ?int $maxLimit = null)
-  {
-    $key = $selector;
-    $seperator = '-';
-
-    // max limit
-    $key .= "$seperator$seperator";
-    $key .= $maxLimit ?? Utils::module()->maxLimit;
-
-    // legal templates
-    $key .= "$seperator$seperator";
-    $key .= Permissions::getViewTemplates()->implode('-', 'name');
-
-    return $key;
+    $selectors = $context->wire->wire(new Selectors());
+    $selectors->init($selector);
+    return $selectors;
   }
 }

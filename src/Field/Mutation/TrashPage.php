@@ -3,6 +3,7 @@
 use GraphQL\Type\Definition\Type;
 use ProcessWire\GraphQL\Error\ExecutionError;
 use ProcessWire\GraphQL\Permissions;
+use ProcessWire\GraphQL\Context;
 use ProcessWire\GraphQL\Utils;
 use ProcessWire\GraphQL\Error\ValidationError;
 use ProcessWire\GraphQL\Type\PageType;
@@ -11,18 +12,16 @@ use ProcessWire\WireException;
 
 class TrashPage
 {
-  public static function field()
+  public static function field(Context $context): array
   {
     return [
       'name' => self::name(),
       'description' => self::description(),
-      'type' => Type::nonNull(PageType::type()),
+      'type' => Type::nonNull(PageType::type($context)),
       'args' => [
         'id' => Type::nonNull(Type::id()),
       ],
-      'resolve' => function ($value, $args) {
-        return self::resolve($value, $args);
-      }
+      'resolve' => fn($root, array $args, Context $context) => self::resolve($context, $args),
     ];
   }
 
@@ -36,12 +35,12 @@ class TrashPage
     return 'Move the given page to the Trash.';
   }
 
-  public static function resolve($value, $args)
+  public static function resolve(Context $context, array $args)
   {
     // prepare neccessary variables
-    $id = Utils::sanitizer()->int($args['id']);
-    $page = Utils::pages()->get("id=$id");
-    $user = Utils::user();
+    $id = $context->sanitizer()->int($args['id']);
+    $page = $context->pages()->get("id=$id");
+    $user = $context->user();
     $notAllowedMsg = "You ar not allowed to move page `$id` to trash.";
 
     // check if we got a page
@@ -50,7 +49,7 @@ class TrashPage
     }
 
     // make sure the template is legal and trashable by the user
-    if (!Permissions::getTrashTemplates()->has($page->template)) {
+    if (!$context->permissions->getTrashTemplates()->has($page->template)) {
       throw new ValidationError($notAllowedMsg);
     }
 
@@ -68,7 +67,7 @@ class TrashPage
 
     // trash the page
     try {
-      if (Utils::pages()->trash($page)) {
+      if ($context->pages()->trash($page)) {
         return $page;
       }
       throw new WireException("Could not move the page to the trash.");

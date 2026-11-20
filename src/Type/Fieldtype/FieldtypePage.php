@@ -1,83 +1,77 @@
 <?php namespace ProcessWire\GraphQL\Type\Fieldtype;
 
 use GraphQL\Deferred;
-use ProcessWire\Page;
-use ProcessWire\PageArray;
+use GraphQL\Type\Definition\ObjectType;
+use GraphQL\Type\Definition\ResolveInfo;
+use ProcessWire\Field;
 use ProcessWire\FieldtypePage as PWFieldtypePage;
-use ProcessWire\GraphQL\Cache;
+use ProcessWire\GraphQL\Context;
 use ProcessWire\GraphQL\Type\Inputfield\InputfieldPage;
 use ProcessWire\GraphQL\Type\PageArrayType;
 use ProcessWire\GraphQL\Type\SelectorType;
-use ProcessWire\GraphQL\PagesBuffer;
+use ProcessWire\GraphQL\Utils;
+use ProcessWire\Page;
+use ProcessWire\PageArray;
+use ProcessWire\Template;
 
 class FieldtypePage
 {
-  public static function type($field)
+  public static function type(Context $context, ?Field $field = null): ObjectType
   {
-    $template = null;
-    // if template is chosen for the FieldtypePage
-    // then we resolve to TemplatedPageArrayType
-    if ($field->template_id) {
-      $template = \ProcessWire\wire('templates')->get($field->template_id);
-    }
-      
-    return PageArrayType::type($template);
+    // if a template is chosen for the FieldtypePage
+    // then we resolve to the templated PageArray type
+    $template = $field?->template_id
+      ? $context->templates()->get($field->template_id)
+      : null;
+
+    return PageArrayType::type($context, $template instanceof Template ? $template : null);
   }
 
-  public static function field($field)
+  public static function field(Context $context, Field $field): array
   {
-    return Cache::field($field->name, function () use ($field) {
-      // description
-      $desc = $field->description;
-      if (!$desc) {
-        $desc = "Field with the type of {$field->type}";
-      }
-
-      return [
-        'name' => $field->name,
-        'description' => $desc,
-        'type' => self::type($field),
-        'resolve' => function ($value, $args, $context, $info) use ($field) {
-          $data = $value->getArray();
-          if (isset($data[$field->name])) {
-            $data = $data[$field->name];
-            if (!empty($data)) {
-              $pageIDs = PagesBuffer::add($field->name, $data);
-              if (count($pageIDs)) {
-                $value->data($field->name, $pageIDs);
-              }
-            }
+    return $context->types->field($field->name, fn() => [
+      'name' => $field->name,
+      'description' => Utils::fieldDescription($field),
+      'type' => self::type($context, $field),
+      'resolve' => function (Page $value, array $args, Context $context, ResolveInfo $info) use ($field) {
+        $data = $value->getArray();
+        if (!empty($data[$field->name])) {
+          $pageIDs = $context->buffer->add($field->name, $data[$field->name]);
+          if (count($pageIDs)) {
+            $value->data($field->name, $pageIDs);
           }
-          return new Deferred(function () use ($value, $field, $info) {
-            $finderOptions = PageArrayType::getFinderOptions($info);
-            PagesBuffer::loadPages($field->name, $finderOptions);
-            $fieldName = $field->name;
-            // temporarily read the value as PageArray, without changing the
-            // field setting for the rest of the request
-            $derefAsPage = $field->derefAsPage;
-            $field->derefAsPage = PWFieldtypePage::derefAsPageArray;
-            try {
-              $value = $value->$fieldName;
-            } finally {
-              $field->derefAsPage = $derefAsPage;
-            }
-            if (!$value instanceof PageArray) {
-              return new PageArray();
-            }
-            return $value->find(SelectorType::parseValue(""));
-          });
         }
-      ];
-    });
+
+        return new Deferred(function () use ($value, $field, $context, $info) {
+          $context->buffer->loadPages($field->name, PageArrayType::getFinderOptions($context, $info));
+
+          // temporarily read the value as PageArray, without changing the
+          // field setting for the rest of the request
+          $fieldName = $field->name;
+          $derefAsPage = $field->derefAsPage;
+          $field->derefAsPage = PWFieldtypePage::derefAsPageArray;
+          try {
+            $pages = $value->$fieldName;
+          } finally {
+            $field->derefAsPage = $derefAsPage;
+          }
+
+          if (!$pages instanceof PageArray) {
+            return new PageArray();
+          }
+          return $pages->find(SelectorType::parseValue($context, ""));
+        });
+      }
+    ]);
   }
 
-  public static function inputField($field)
+  public static function inputField(Context $context, Field $field): array
   {
-    return InputfieldPage::inputField($field);
+    return InputfieldPage::inputField($context, $field);
   }
 
-  public static function setValue(Page $page, $field, $value)
+  public static function setValue(Context $context, Page $page, Field $field, $value): void
   {
-    return InputfieldPage::setValue($page, $field, $value);
+    InputfieldPage::setValue($context, $page, $field, $value);
   }
 }

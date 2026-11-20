@@ -246,7 +246,8 @@ class ProcessGraphQLConfig extends ModuleConfig {
     $f->label = 'Page Fields';
     $f->description = 'Choose which built in `Page` fields you want to be served via GraphQL api.';
     $f->notes = 'Be careful with fields like `parents`, `children` and `references` that will allow user to construct deeply nested queries that might be very expensive for your server to fulfill.';
-    foreach (PageType::getBuiltInFields() as $field) {
+    $context = $this->modules->get('ProcessGraphQL')->createContext();
+    foreach (PageType::getBuiltInFields($context) as $field) {
       $f->addOption($field['name']);
     }
     $inputfields->add($f);
@@ -258,7 +259,7 @@ class ProcessGraphQLConfig extends ModuleConfig {
     $f->label = 'PageFile Fields';
     $f->description = 'Choose which built in `PageFile` fields you want to be served via GraphQL api.';
     $f->notes = 'These fields are also inherited by `PageImage`.';
-    foreach (FileType::getBuiltInFields() as $field) {
+    foreach (FileType::getBuiltInFields($context) as $field) {
       $f->addOption($field['name']);
     }
     $inputfields->add($f);
@@ -269,7 +270,7 @@ class ProcessGraphQLConfig extends ModuleConfig {
     $f->attr('name', 'legalPageImageFields');
     $f->label = 'PageImage Fields';
     $f->description = 'Choose which built in `PageImage` fields you want to be served via GraphQL api.';
-    foreach (ImageType::getBuiltInFields() as $field) {
+    foreach (ImageType::getBuiltInFields($context) as $field) {
       $f->addOption($field['name']);
     }
     $inputfields->add($f);

@@ -1,9 +1,12 @@
 <?php namespace ProcessWire\GraphQL\Type\Fieldtype\Traits;
 
+use ProcessWire\Field;
+use ProcessWire\GraphQL\Context;
+
 trait InputFieldTrait
 {
-  public static function inputField($field)
+  public static function inputField(Context $context, Field $field): array
   {
-    return self::field($field);
+    return static::field($context, $field);
   }
 }

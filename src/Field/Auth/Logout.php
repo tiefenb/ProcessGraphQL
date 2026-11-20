@@ -1,27 +1,23 @@
 <?php namespace ProcessWire\GraphQL\Field\Auth;
 
+use ProcessWire\GraphQL\Context;
 use ProcessWire\GraphQL\Type\AuthResponseType;
 
 class Logout
 {
-  public static function field()
+  public static function field(Context $context): array
   {
     return [
-      'type' => AuthResponseType::type(),
+      'type' => AuthResponseType::type($context),
       'name' => 'logout',
       'description' => 'Allows you to logout from the app.',
-      'resolve' => function () {
-        $session = \ProcessWire\wire('session');
-        $response = [];
+      'resolve' => function ($root, array $args, Context $context) {
         try {
-          $session->logout();
-          $response['statusCode'] = 200;
-          $response['message'] = 'Successful logout!';
+          $context->session()->logout();
+          return ['statusCode' => 200, 'message' => 'Successful logout!'];
         } catch (\Throwable $error) {
-          $response['statusCode'] = 500;
-          $response['message'] = 'Could not logout: ' . $error->getMessage();
+          return ['statusCode' => 500, 'message' => 'Could not logout: ' . $error->getMessage()];
         }
-        return $response;
       }
     ];
   }

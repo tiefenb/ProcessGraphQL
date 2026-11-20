@@ -2,13 +2,13 @@
 
 use GraphQL\GraphQL;
 use GraphQL\Error\DebugFlag;
+use GraphQL\Type\Schema as GraphQLSchema;
 use GraphQL\Validator\Rules\QueryDepth;
 use GraphQL\Validator\Rules\QueryComplexity;
 use GraphQL\Validator\DocumentValidator;
-use ProcessWire\GraphQL\Permissions;
-use ProcessWire\HookEvent;
+use ProcessWire\GraphQL\Context;
 use ProcessWire\GraphQL\Schema;
-use Processwire\ProcessGraphQLConfig;
+use ProcessWire\HookEvent;
 
 class ProcessGraphQL extends Process implements Module {
 
@@ -44,10 +44,11 @@ class ProcessGraphQL extends Process implements Module {
    * Custom types could be added bu just appending them into an array.
    * See the documentation of the library used by this module to learn more
    * @see  The GraphQL lib https://github.com/webonyx/graphql-php
-   * @param  $schema
-   * @return $schema
+   * @param array $schema Schema config (`query`, `mutation`, ...)
+   * @param Context|null $context Context the schema is built for
+   * @return array
    */
-	public function ___modifySchema($schema) {
+	public function ___modifySchema($schema, ?Context $context = null) {
 		return $schema;
 	}
 
@@ -196,27 +197,67 @@ class ProcessGraphQL extends Process implements Module {
 			$variables = $request['variables'];
 		}
 
-		// instantiating Processor and setting the schema
-		$schema = Schema::getSchema();
-		Permissions::turnOnApiAccess();
+		// every execution gets its own context and schema
+		$context = $this->createContext();
+		$schema = $this->getSchema($context);
+		$context->permissions->turnOnApiAccess();
 
-    // Add validation rules
-    $validationRules = null;
-    $maxQueryDepth = $this->maxQueryDepth;
-    $maxQueryComplexity = $this->maxQueryComplexity;
-    if ($maxQueryDepth || $maxQueryComplexity) {
-      $validationRules = DocumentValidator::allRules();
-      if ($maxQueryDepth) $validationRules[] = new QueryDepth($maxQueryDepth);
-      if ($maxQueryComplexity) $validationRules[] = new QueryComplexity($maxQueryComplexity);
-    }
+		$result = GraphQL::executeQuery(
+			$schema,
+			$payload,
+			$context->pages(),
+			$context,
+			$variables,
+			null,
+			null,
+			$this->getValidationRules()
+		);
+		return $result->toArray($this->getDebugFlag());
+	}
 
-		$result = GraphQL::executeQuery($schema, $payload, $this->pages, null, $variables, null, null, $validationRules);
-		$debug = false;
-		if ($this->config->debug) {
-			$debug = DebugFlag::INCLUDE_DEBUG_MESSAGE | DebugFlag::INCLUDE_TRACE;
+	/**
+	 * Creates the state of one GraphQL execution, bound to this module's
+	 * ProcessWire instance. Passed to every resolver as third argument.
+	 */
+	public function createContext(): Context
+	{
+		return new Context($this->wire(), $this);
+	}
+
+	/**
+	 * Builds the GraphQL schema for the given context (its user's permissions).
+	 */
+	public function getSchema(?Context $context = null): GraphQLSchema
+	{
+		return Schema::build($context ?? $this->createContext());
+	}
+
+	/**
+	 * Validation rules incl. the configured query depth and complexity limits.
+	 *
+	 * @return array|null Null for the graphql-php defaults
+	 */
+	public function getValidationRules(): ?array
+	{
+		$maxQueryDepth = (int) $this->maxQueryDepth;
+		$maxQueryComplexity = (int) $this->maxQueryComplexity;
+		if (!$maxQueryDepth && !$maxQueryComplexity) {
+			return null;
 		}
-		$response = $result->toArray($debug);
-		return $response;
+		$validationRules = DocumentValidator::allRules();
+		if ($maxQueryDepth) $validationRules[] = new QueryDepth($maxQueryDepth);
+		if ($maxQueryComplexity) $validationRules[] = new QueryComplexity($maxQueryComplexity);
+		return $validationRules;
+	}
+
+	/**
+	 * Debug details (message and trace) in errors only in debug mode.
+	 */
+	public function getDebugFlag(): int
+	{
+		return $this->wire()->config->debug
+			? DebugFlag::INCLUDE_DEBUG_MESSAGE | DebugFlag::INCLUDE_TRACE
+			: DebugFlag::NONE;
 	}
 
   /**
@@ -225,10 +266,11 @@ class ProcessGraphQL extends Process implements Module {
 	 * Custom fields could be added bu just appending them into an array.
    * See the documentation of the library used by this module to learn more
    * @see  The GraphQL lib https://github.com/webonyx/graphql-php
-   * @param  $queryFields
-   * @return $queryFields
+   * @param array $queryFields
+   * @param Context|null $context Context the schema is built for
+   * @return array
    */
-  public function ___getQueryFields($queryFields)
+  public function ___getQueryFields($queryFields, ?Context $context = null)
   {
     return $queryFields;
   }
@@ -239,10 +281,11 @@ class ProcessGraphQL extends Process implements Module {
 	 * Custom fields could be added bu just appending them into an array.
    * See the documentation of the library used by this module to learn more
    * @see  The GraphQL lib https://github.com/webonyx/graphql-php
-   * @param $mutationFields
-   * @return $mutationFields
+   * @param array $mutationFields
+   * @param Context|null $context Context the schema is built for
+   * @return array
    */
-  public function ___getMutationFields($mutationFields)
+  public function ___getMutationFields($mutationFields, ?Context $context = null)
   {
     return $mutationFields;
   }

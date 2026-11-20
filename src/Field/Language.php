@@ -3,11 +3,11 @@
 namespace ProcessWire\GraphQL\Field;
 
 use GraphQL\Type\Definition\Type;
-use ProcessWire\GraphQL\Utils;
+use ProcessWire\GraphQL\Context;
 use ProcessWire\Language as PWLanguage;
 
 class Language {
-  public static function field()
+  public static function field(): array
   {
     return [
       'type' => Type::string(),
@@ -16,16 +16,14 @@ class Language {
       'args' => [
         'name' => Type::nonNull(Type::string())
       ],
-      'resolve' => function ($pages, array $args)
-      {
-        $languageName = Utils::sanitizer()->pageName($args['name']);
-        $language = Utils::languages()->get($languageName);
+      'resolve' => function ($root, array $args, Context $context) {
+        $languageName = $context->sanitizer()->pageName($args['name']);
+        $language = $context->languages()?->get($languageName);
         if ($language instanceof PWLanguage) {
-          Utils::user()->language = $language;
+          $context->user()->language = $language;
           return $language->name;
-        } else {
-          return 'Unknown language!';
-        }   
+        }
+        return 'Unknown language!';
       }
     ];
   }

@@ -2,58 +2,56 @@
 
 use GraphQL\Type\Definition\InputObjectType;
 use GraphQL\Type\Definition\Type;
-use ProcessWire\Page;
 use ProcessWire\Field;
 use ProcessWire\FieldtypePage;
-use ProcessWire\GraphQL\Cache;
-use ProcessWire\GraphQL\Utils;
+use ProcessWire\GraphQL\Context;
+use ProcessWire\Page;
 
 class InputfieldPage
 {
+  public const NAME = 'InputfieldPage';
+
   public static function getName(): string
   {
-    return 'InputfieldPage';
+    return self::NAME;
   }
 
   public static function getDescription(?Field $field = null): string
   {
-    if ($field === null) {
-      return '';
-    }
-    return (string)($field->description ?? '');
-  }
-  
-  public static function type($field)
-  {
-    return Cache::type(self::getName(), function () use ($field) {
-      return new InputObjectType([
-        'name' => self::getName(),
-        'fields' => [
-          'add' => [
-            'type' => Type::listOf(Type::id()),
-            'description' => 'List of page ids that you would like to add.',
-          ],
-          'remove' => [
-            'type' => Type::listOf(Type::id()),
-            'description' => 'List of page ids that you would like to remove.',
-          ]
-        ],
-      ]);
-    });
+    return (string) ($field?->description ?? '');
   }
 
-  public static function inputField($field)
+  public static function type(Context $context, ?Field $field = null): InputObjectType
+  {
+    return $context->types->type(self::NAME, fn() => new InputObjectType([
+      'name' => self::NAME,
+      'fields' => [
+        'add' => [
+          'type' => Type::listOf(Type::id()),
+          'description' => 'List of page ids that you would like to add.',
+        ],
+        'remove' => [
+          'type' => Type::listOf(Type::id()),
+          'description' => 'List of page ids that you would like to remove.',
+        ],
+      ],
+    ]));
+  }
+
+  public static function inputField(Context $context, Field $field): array
   {
     return [
       'name' => $field->name,
       'description' => self::getDescription($field),
-      'type' => self::type($field),
+      'type' => self::type($context, $field),
     ];
   }
 
-  public static function setValue(Page $page, $field, $value)
+  public static function setValue(Context $context, Page $page, Field $field, $value): void
   {
     $fieldName = $field->name;
+    $pages = $context->pages();
+
     // temporarily read the value as PageArray, without changing the
     // field setting for the rest of the request
     $derefAsPage = $field->derefAsPage;
@@ -63,15 +61,12 @@ class InputfieldPage
     } finally {
       $field->derefAsPage = $derefAsPage;
     }
-    if (isset($value['add'])) {
-      foreach ($value['add'] as $id) {
-        $fieldValue->add(Utils::pages()->get($id));
-      }
+
+    foreach ($value['add'] ?? [] as $id) {
+      $fieldValue->add($pages->get($id));
     }
-    if (isset($value['remove'])) {
-      foreach ($value['remove'] as $id) {
-        $fieldValue->remove(Utils::pages()->get($id));
-      }
+    foreach ($value['remove'] ?? [] as $id) {
+      $fieldValue->remove($pages->get($id));
     }
     $page->$fieldName = $fieldValue;
   }

@@ -196,7 +196,21 @@ wire()->addHookAfter("ProcessGraphQL::getQueryFields", function (
 echo $processGraphQL->executeGraphQL();
 ```
 
-The above code will add a `hello` field into your GraphQL api that reponds with the string `world`. You should notice that we use third party library to modify our query. It's the  library used by ProcessGraphQL internally. We recommend you to checkout the [library documentation][webonyx-graphql] to learn more about how you can modify your GraphQL api.
+The above code will add a `hello` field into your GraphQL api that reponds with the string `world`.
+
+Every resolver receives a `ProcessWire\GraphQL\Context` as third argument. It holds the ProcessWire instance of the request (`$context->pages()`, `$context->user()`, `$context->wire`), the module (`$context->module`) and the permission checks of the current user (`$context->permissions`). The hooks `getQueryFields`, `getMutationFields` and `modifySchema` receive the same context as second argument (`$event->arguments(1)`).
+
+```php
+use ProcessWire\GraphQL\Context;
+
+$fields[] = [
+  "name" => "latestNews",
+  "type" => Type::listOf(Type::string()),
+  "resolve" => function ($root, array $args, Context $context) {
+    return $context->pages()->find("template=news, sort=-created, limit=3")->explode("title");
+  },
+];
+``` You should notice that we use third party library to modify our query. It's the  library used by ProcessGraphQL internally. We recommend you to checkout the [library documentation][webonyx-graphql] to learn more about how you can modify your GraphQL api.
 
 #### getMutation() hook
 

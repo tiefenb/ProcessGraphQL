@@ -2,36 +2,34 @@
 
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type;
-use ProcessWire\GraphQL\Cache;
+use ProcessWire\GraphQL\Context;
 use ProcessWire\GraphQL\Type\Fieldtype\FieldtypeEmail;
 
 class UserType
 {
-  public static string $name = 'User';
+  public const NAME = 'User';
 
-  public static string $description = 'ProcessWire User.';
+  public const DESCRIPTION = 'ProcessWire User.';
 
-  public static function type()
+  public static function type(Context $context): ObjectType
   {
-    return Cache::type(self::$name, function () {
-      return new ObjectType([
-        'name' => self::$name,
-        'description' => self::$description,
-        'fields' => [
-          'name' => [
-            'type' => Type::nonNull(Type::string()),
-            'description' => "The user's login name.",
-          ],
-          'email' => [
-            'type' => FieldtypeEmail::type(),
-            'description' => "The user's email address.",
-          ],
-          'id' => [
-            'type' => Type::nonNull(Type::id()),
-            'description' => "The user's id.",
-          ],
-        ]
-      ]);
-    });
+    return $context->types->type(self::NAME, fn() => new ObjectType([
+      'name' => self::NAME,
+      'description' => self::DESCRIPTION,
+      'fields' => fn() => [
+        'name' => [
+          'type' => Type::nonNull(Type::string()),
+          'description' => "The user's login name.",
+        ],
+        'email' => [
+          'type' => FieldtypeEmail::type($context),
+          'description' => "The user's email address.",
+        ],
+        'id' => [
+          'type' => Type::nonNull(Type::id()),
+          'description' => "The user's id.",
+        ],
+      ],
+    ]));
   }
 }

@@ -1,75 +1,58 @@
 <?php namespace ProcessWire\GraphQL\Type\Fieldtype;
 
-use ProcessWire\Page;
-use ProcessWire\NullPage;
-use ProcessWire\Selectors;
+use GraphQL\Type\Definition\ObjectType;
+use ProcessWire\Field;
+use ProcessWire\GraphQL\Context;
 use ProcessWire\GraphQL\Type\Inputfield\InputfieldRepeater;
-use ProcessWire\GraphQL\Cache;
-use ProcessWire\GraphQL\Utils;
 use ProcessWire\GraphQL\Type\PageArrayType;
 use ProcessWire\GraphQL\Type\SelectorType;
-use ProcessWire\GraphQL\Type\Fieldtype\Traits\InputFieldTrait;
-use ProcessWire\GraphQL\Type\Fieldtype\Traits\SetValueTrait;
+use ProcessWire\GraphQL\Utils;
+use ProcessWire\NullPage;
+use ProcessWire\Page;
+use ProcessWire\Selectors;
 
 class FieldtypeRepeater
 {
-  use InputFieldTrait;
-  use SetValueTrait;
+  public const NAME = 'Repeater';
 
-  public static string $name = 'Repeater';
+  public const DESCRIPTION = 'Maintains a collection of fields that are repeated for any number of times.';
 
-  public static string $description = 'Maintains a collection of fields that are repeated for any number of times.';
-
-  public static function type($field)
+  public static function type(Context $context, ?Field $field = null): ObjectType
   {
-    $templateId = $field->get('template_id');
-    $template = Utils::templates()->get($templateId);
-    return PageArrayType::type($template);
+    $template = $context->templates()->get($field->get('template_id'));
+    return PageArrayType::type($context, $template);
   }
 
-  public static function field($field)
+  public static function field(Context $context, Field $field): array
   {
-    $field = Cache::field($field->name, function () use ($field) {
-      // description
-      $desc = $field->description;
-      if (!$desc) {
-        $desc = "Field with the type of {$field->type}";
-      }
-
-      return [
-        'name' => $field->name,
-        'description' => $desc,
-        'type' => self::type($field),
-        'args' => [
-          's' => [
-            'type' => SelectorType::type(),
-            'description' => "ProcessWire selector."
-          ],
+    return $context->types->field($field->name, fn() => [
+      'name' => $field->name,
+      'description' => Utils::fieldDescription($field),
+      'type' => self::type($context, $field),
+      'args' => [
+        's' => [
+          'type' => SelectorType::type($context),
+          'description' => "ProcessWire selector."
         ],
-        'resolve' => function (Page $page, array $args) use ($field) {
-          $fieldName = $field->name;
-          $selector = "";
-          if (isset($args['s'])) {
-            $selector = $args['s'];
-          }
-          $selector = new Selectors($selector);
-          $result = $page->$fieldName->find((string) $selector);
-          if ($result instanceof NullPage) return null;
-          return $result;
-        }
-      ];
-    });
-
-    return $field;
+      ],
+      'resolve' => function (Page $page, array $args, Context $context) use ($field) {
+        $fieldName = $field->name;
+        $selectors = $context->wire->wire(new Selectors());
+        $selectors->init($args['s'] ?? "");
+        // filters the already loaded (formatted) repeater items in memory
+        $result = $page->$fieldName->find((string) $selectors);
+        return $result instanceof NullPage ? null : $result;
+      }
+    ]);
   }
 
-  public static function inputField($field)
+  public static function inputField(Context $context, Field $field): array
   {
-    return InputfieldRepeater::inputField($field);
+    return InputfieldRepeater::inputField($context, $field);
   }
 
-  public static function setValue(Page $page, $field, $value)
+  public static function setValue(Context $context, Page $page, Field $field, $value): void
   {
-    return InputfieldRepeater::setValue($page, $field, $value);
+    InputfieldRepeater::setValue($context, $page, $field, $value);
   }
 }

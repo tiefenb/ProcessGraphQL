@@ -2,70 +2,52 @@
 
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Schema as GraphQLSchema;
-
-use ProcessWire\Languages;
-use ProcessWire\GraphQL\Utils;
-use ProcessWire\GraphQL\Cache;
-use ProcessWire\GraphQL\Permissions;
-use ProcessWire\GraphQL\Type\PageArrayType;
-use ProcessWire\GraphQL\Type\UserType;
 use ProcessWire\GraphQL\Field\Auth\Login;
 use ProcessWire\GraphQL\Field\Auth\Logout;
 use ProcessWire\GraphQL\Field\Debug\DbQuery;
+use ProcessWire\GraphQL\Field\Language;
 use ProcessWire\GraphQL\Field\Mutation\CreatePage;
 use ProcessWire\GraphQL\Field\Mutation\TrashPage;
 use ProcessWire\GraphQL\Field\Mutation\UpdatePage;
-use ProcessWire\GraphQL\Field\Language;
+use ProcessWire\GraphQL\Type\PageArrayType;
+use ProcessWire\GraphQL\Type\UserType;
 
-class Schema
+/**
+ * Builds the GraphQL schema for a Context.
+ *
+ * The schema depends on the permissions of the context's user, so it is built
+ * per context and never cached statically.
+ */
+final class Schema
 {
-  private static ?GraphQLSchema $schema = null;
-
-  /**
-   * The schema depends on the user's permissions, so it is only reused
-   * for the user it was built for.
-   */
-  private static ?int $schemaUserId = null;
-
-  public static function getSchema()
+  public static function build(Context $context): GraphQLSchema
   {
-    if (self::$schema === null || self::$schemaUserId !== (int) Utils::user()->id) {
-      self::build();
-    }
-
-    return self::$schema;
-  }
-
-  public static function build()
-  {
-    Cache::clear();
     $schema = [];
 
-    $query = self::buildQuery();
+    $query = self::buildQuery($context);
     if ($query) {
       $schema['query'] = $query;
     }
 
-    $mutation = self::buildMutation();
+    $mutation = self::buildMutation($context);
     if ($mutation) {
       $schema['mutation'] = $mutation;
     }
 
     // Let the user or other modules modify the schema.
-    $schema = Utils::module()->modifySchema($schema);
+    $schema = $context->module->modifySchema($schema, $context);
 
-    self::$schema = new GraphQLSchema($schema);
-    self::$schemaUserId = (int) Utils::user()->id;
+    return new GraphQLSchema($schema);
   }
 
-  public static function buildQuery()
+  public static function buildQuery(Context $context): ?ObjectType
   {
-    $module = Utils::module();
+    $module = $context->module;
     $queryFields = [];
 
-    // add lagal templates
-    foreach (Permissions::getViewTemplates() as $template) {
-      $queryFields[] = PageArrayType::field($template);
+    // legal templates
+    foreach ($context->permissions->getViewTemplates() as $template) {
+      $queryFields[] = PageArrayType::field($context, $template);
     }
 
     // User. The `me`
@@ -73,75 +55,68 @@ class Schema
       $queryFields[] = [
         'name' => 'me',
         'description' => 'The current user of the app.',
-        'type' => UserType::type(),
-        'resolve' => function() {
-          return \ProcessWire\wire('user');
-        }
+        'type' => UserType::type($context),
+        'resolve' => fn($root, array $args, Context $context) => $context->user(),
       ];
     }
 
     // Auth
     if ($module->authQuery) {
-      if (Utils::user()->isLoggedin()) {
-        $queryFields[] = Logout::field();
-      } else {
-        $queryFields[] = Login::field();
-      }
+      $queryFields[] = $context->user()->isLoggedin()
+        ? Logout::field($context)
+        : Login::field($context);
     }
 
     // Debugging
-    if (\ProcessWire\Wire('config')->debug) {
+    if ($context->config()->debug) {
       $queryFields[] = DbQuery::field();
     }
 
     // Language
-    $languages = Utils::languages();
-    if ($languages && $languages instanceof Languages) {
+    if ($context->languages()) {
       $queryFields[] = Language::field();
     }
 
     // let the user modify the query operation
-    $queryFields = $module->getQueryFields($queryFields);
+    $queryFields = $module->getQueryFields($queryFields, $context);
 
-    if (!empty($queryFields)) {
-      return new ObjectType([
-        'name' => 'Query',
-        'fields' => $queryFields,
-      ]);
+    if (empty($queryFields)) {
+      return null;
     }
 
-    return null;
+    return new ObjectType([
+      'name' => 'Query',
+      'fields' => $queryFields,
+    ]);
   }
 
-  public static function buildMutation()
+  public static function buildMutation(Context $context): ?ObjectType
   {
+    $permissions = $context->permissions;
     $mutationFields = [];
 
-    // CreatePage
-    foreach (Permissions::getCreateTemplates() as $template) {
-      $mutationFields[] = CreatePage::field($template);
+    foreach ($permissions->getCreateTemplates() as $template) {
+      $mutationFields[] = CreatePage::field($context, $template);
     }
 
-    // UpdatePage
-    foreach (Permissions::getEditTemplates() as $template) {
-      $mutationFields[] = UpdatePage::field($template);
+    foreach ($permissions->getEditTemplates() as $template) {
+      $mutationFields[] = UpdatePage::field($context, $template);
     }
 
-    // trash page
-    if (count(Permissions::getTrashTemplates())) {
-      $mutationFields[] = TrashPage::field();
+    if (count($permissions->getTrashTemplates())) {
+      $mutationFields[] = TrashPage::field($context);
     }
 
-    // let the user modify the query operation
-    $mutationFields = Utils::module()->getMutationFields($mutationFields);
+    // let the user modify the mutation operation
+    $mutationFields = $context->module->getMutationFields($mutationFields, $context);
 
-    if (!empty($mutationFields)) {
-      return new ObjectType([
-        'name' => 'Mutation',
-        'fields' => $mutationFields,
-      ]);
+    if (empty($mutationFields)) {
+      return null;
     }
 
-    return null;
+    return new ObjectType([
+      'name' => 'Mutation',
+      'fields' => $mutationFields,
+    ]);
   }
 }

@@ -6,6 +6,7 @@ use ProcessWire\Template;
 use ProcessWire\Page;
 use ProcessWire\NullPage;
 use ProcessWire\GraphQL\Permissions;
+use ProcessWire\GraphQL\Context;
 use ProcessWire\GraphQL\Utils;
 use ProcessWire\GraphQL\Error\ValidationError;
 use ProcessWire\GraphQL\Type\PageType;
@@ -13,18 +14,16 @@ use ProcessWire\GraphQL\InputType\PageCreateInputType;
 
 class CreatePage
 {
-  public static function field(Template $template)
+  public static function field(Context $context, Template $template): array
   {
     return [
       "name" => self::name($template),
       "description" => self::description($template),
-      "type" => PageType::type($template),
+      "type" => PageType::type($context, $template),
       "args" => [
-        "page" => Type::nonNull(PageCreateInputType::type($template)),
+        "page" => Type::nonNull(PageCreateInputType::type($context, $template)),
       ],
-      "resolve" => function ($value, $args) use ($template) {
-        return self::resolve($value, $args, $template);
-      },
+      "resolve" => fn($root, array $args, Context $context) => self::resolve($context, $args, $template),
     ];
   }
 
@@ -38,12 +37,11 @@ class CreatePage
     return "Allows you to create Pages with template `{$template->name}`.";
   }
 
-  public static function resolve($value, $args, $template)
+  public static function resolve(Context $context, array $args, Template $template)
   {
     // prepare neccessary variables
-    $pages = Utils::pages();
-    $sanitizer = Utils::sanitizer();
-    $fields = Utils::fields();
+    $pages = $context->pages();
+    $sanitizer = $context->sanitizer();
     $values = (array) $args["page"];
 
     /*********************************************\
@@ -80,7 +78,7 @@ class CreatePage
     }
 
     // make sure user is allowed to add children to this parent
-    $addTemplates = Permissions::getAddTemplates();
+    $addTemplates = $context->permissions->getAddTemplates();
     if (!$addTemplates->has($parent->template)) {
       throw new ValidationError(
         "You are not allowed to add children to the parent: '$parentSelector'."
@@ -130,7 +128,7 @@ class CreatePage
     unset($values["parent"]);
     unset($values["name"]);
 
-    PageCreateInputType::setValues($p, $values);
+    PageCreateInputType::setValues($context, $p, $values);
 
     // save the page to db
     if ($p->save()) {

@@ -3,6 +3,7 @@
 use GraphQL\Type\Definition\Type;
 use ProcessWire\Template;
 use ProcessWire\NullPage;
+use ProcessWire\GraphQL\Context;
 use ProcessWire\GraphQL\Utils;
 use ProcessWire\GraphQL\Permissions;
 use ProcessWire\GraphQL\Type\PageType;
@@ -13,18 +14,16 @@ use ProcessWire\WireException;
 
 class UpdatePage
 {
-  public static function field(Template $template)
+  public static function field(Context $context, Template $template): array
   {
     return [
       'name' => self::name($template),
       'description' => self::description($template),
-      'type' => PageType::type($template),
+      'type' => PageType::type($context, $template),
       'args' => [
-        'page' => Type::nonNull(PageUpdateInputType::type($template)),
+        'page' => Type::nonNull(PageUpdateInputType::type($context, $template)),
       ],
-      'resolve' => function ($value, $args) use ($template) {
-        return self::resolve($value, $args, $template);
-      }
+      'resolve' => fn($root, array $args, Context $context) => self::resolve($context, $args, $template),
     ];
   }
 
@@ -38,12 +37,12 @@ class UpdatePage
     return "Allows you to update Pages with template `{$template->name}`.";
   }
 
-  public static function resolve($value, $args, $template)
+  public static function resolve(Context $context, array $args, Template $template)
   {
     // prepare neccessary variables
-    $pages = Utils::pages();
-    $user = Utils::user();
-    $sanitizer = Utils::sanitizer();
+    $pages = $context->pages();
+    $user = $context->user();
+    $sanitizer = $context->sanitizer();
     $values = (array) $args['page'];
     $id = (int) $values['id'];
     $p = $pages->get($id);
@@ -62,7 +61,7 @@ class UpdatePage
 
     // if page-edit-created permission is installed and user has that permission
     // make sure that user can edit this page
-    $pageEditCreatedPermission = Utils::permissions()->get('page-edit-created');
+    $pageEditCreatedPermission = $context->wire->permissions->get('page-edit-created');
     if (
       $pageEditCreatedPermission->id &&
       $user->hasPermission($pageEditCreatedPermission) &&
@@ -96,7 +95,7 @@ class UpdatePage
 
       // if user is trying to move the page
       // make sure user has page-move permission
-      $pageMovePermission = Utils::permissions()->get(Permissions::pageMovePermission);
+      $pageMovePermission = $context->wire->permissions->get(Permissions::pageMovePermission);
       if (
         $p->parentID !== $parent->id &&
         !$user->hasPermission($pageMovePermission, $p->template)
@@ -105,7 +104,7 @@ class UpdatePage
       }
 
       // make sure user is allowed to add children to this parent
-      $addTemplates = Permissions::getAddTemplates();
+      $addTemplates = $context->permissions->getAddTemplates();
       if (!$addTemplates->has($parent->template)) {
         throw new ValidationError("You are not allowed to add children to the parent: '$parentSelector'.");
       }
@@ -157,7 +156,7 @@ class UpdatePage
     unset($values['parent']);
     unset($values['name']);
 
-    PageUpdateInputType::setValues($p, $values);
+    PageUpdateInputType::setValues($context, $p, $values);
 
     // save the page to db
     try {

@@ -4,30 +4,24 @@ namespace ProcessWire\GraphQL\Type;
 
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type;
-use ProcessWire\GraphQL\Utils;
-use ProcessWire\GraphQL\Cache;
+use ProcessWire\GraphQL\Context;
 
 class FileType {
 
-  public static string $name = 'File';
+  public const NAME = 'File';
 
-  public static string $description = 'ProcessWire PageFile.';
+  public const DESCRIPTION = 'ProcessWire PageFile.';
 
-  public static function type()
+  public static function type(Context $context): ObjectType
   {
-    $type = Cache::type(self::$name, function () {
-      return new ObjectType([
-        'name' => self::$name,
-        'description' => self::$description,
-        'fields' => function () {
-          return self::getLegalBuiltInFields();
-        }
-      ]);
-    });
-    return $type;
+    return $context->types->type(self::NAME, fn() => new ObjectType([
+      'name' => self::NAME,
+      'description' => self::DESCRIPTION,
+      'fields' => fn() => self::getLegalBuiltInFields($context),
+    ]));
   }
 
-  public static function getBuiltInFields()
+  public static function getBuiltInFields(?Context $context = null): array
   {
     return [
       [
@@ -132,10 +126,12 @@ class FileType {
     ];
   }
 
-  public static function getLegalBuiltInFields()
+  public static function getLegalBuiltInFields(Context $context): array
   {
-    return array_filter(self::getBuiltInFields(), function ($field) {
-      return in_array($field['name'], Utils::module()->legalPageFileFields);
-    });
+    $legal = array_flip($context->module->legalPageFileFields);
+    return array_filter(
+      self::getBuiltInFields($context),
+      fn($field) => isset($legal[$field['name']])
+    );
   }
 }

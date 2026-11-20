@@ -1,51 +1,43 @@
 <?php namespace ProcessWire\GraphQL\InputType;
 
-use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Definition\InputObjectType;
-use ProcessWire\Template;
-use ProcessWire\Page;
-use ProcessWire\GraphQL\Cache;
+use GraphQL\Type\Definition\Type;
+use ProcessWire\GraphQL\Context;
 use ProcessWire\GraphQL\Utils;
-use ProcessWire\GraphQL\InputType\PageCreateInputType;
+use ProcessWire\Page;
+use ProcessWire\Template;
 
 class PageUpdateInputType
 {
-  public static function getName(Template $template)
+  public static function getName(Template $template): string
   {
     return Utils::normalizeTypeName("{$template->name}UpdateInput");
   }
-  
-  public static function type(Template $template)
-  {  
-    $type = Cache::type(self::getName($template), function () use ($template) {
-      return new InputObjectType([
-        'name' => self::getName($template),
-        'description' => "UpdateInputType for pages with template `{$template->name}`.",
-        'fields' => fn() => self::getFields($template),
-      ]);
-    });
-   
-    return $type;
-  }
 
-  public static function getFields(Template $template)
+  public static function type(Context $context, Template $template): InputObjectType
   {
-    $fields = [];
-
-    // add the page id
-    $fields[] = [
-      'name' => 'id',
-      'type' => Type::nonNull(Type::id()),
-      'description' => 'ProcessWire Page id of the page you want to update.',
-    ];
-
-    // add built in fields and template fields
-    $fields = [...$fields, ...PageCreateInputType::getBuiltInFields(), ...PageCreateInputType::getTemplateFields($template)];
-
-    return $fields;
+    return $context->types->type(self::getName($template), fn() => new InputObjectType([
+      'name' => self::getName($template),
+      'description' => "UpdateInputType for pages with template `{$template->name}`.",
+      'fields' => fn() => self::getFields($context, $template),
+    ]));
   }
 
-  public static function setValues(Page $page, array $values) {
-    PageCreateInputType::setValues($page, $values);
+  public static function getFields(Context $context, Template $template): array
+  {
+    return [
+      [
+        'name' => 'id',
+        'type' => Type::nonNull(Type::id()),
+        'description' => 'ProcessWire Page id of the page you want to update.',
+      ],
+      ...PageCreateInputType::getBuiltInFields(),
+      ...PageCreateInputType::getTemplateFields($context, $template),
+    ];
+  }
+
+  public static function setValues(Context $context, Page $page, array $values): void
+  {
+    PageCreateInputType::setValues($context, $page, $values);
   }
 }

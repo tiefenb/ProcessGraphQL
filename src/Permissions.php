@@ -1,11 +1,16 @@
 <?php namespace ProcessWire\GraphQL;
 
-use ProcessWire\Template;
-use ProcessWire\Templates;
 use ProcessWire\Field;
-use ProcessWire\GraphQL\Utils;
+use ProcessWire\Template;
+use ProcessWire\TemplatesArray;
 
-class Permissions
+/**
+ * Access checks for the current user of a Context.
+ *
+ * The permission filtered template lists are memoized per user for the
+ * lifetime of the Context (one GraphQL execution).
+ */
+final class Permissions
 {
   public const pageAddPermission = "page-add";
   public const pageCreatePermission = "page-create";
@@ -16,62 +21,35 @@ class Permissions
   public const pageEditCreatedPermission = "page-edit-created";
   public const pageEditTrashCreatedPermission = "page-edit-trash-created";
 
-  /**
-   * Per-request memo of permission filtered templates, keyed by kind and user.
-   * Cleared together with the schema caches (see Cache::clear()).
-   *
-   * @var array<string, \ProcessWire\TemplatesArray>
-   */
-  private static array $memo = [];
+  /** @var array<string, TemplatesArray> */
+  private array $memo = [];
 
-  public static function clearCache(): void
+  public function __construct(private readonly Context $context)
   {
-    self::$memo = [];
-  }
-
-  private static function memoize(string $kind, callable $predicator)
-  {
-    $key = $kind . ':' . Utils::user()->id;
-    return self::$memo[$key] ??= self::filterTemplatesByPermission($predicator);
   }
 
   /**
-   * Checks if the page using this template can be viewed by the current user.
-   *
-   * @param Template $template
-   * @return boolean
+   * Tells if pages using this template can be viewed by the current user.
    */
-  public static function canView(Template $template)
+  public function canView(Template $template): bool
   {
-    $user = Utils::user();
+    $user = $this->context->user();
 
-    // can view if superuser
     if ($user->isSuperuser()) {
       return true;
     }
 
-    // can't view if access rules are not defined
-    if (!self::definesAccess($template)) {
-      return false;
-    }
-
-    // can't view if user does not have view permission for the given template
-    if (!$user->hasPermission(self::pageViewPermission, $template)) {
-      return false;
-    }
-
-    return true;
+    return $this->definesAccess($template)
+      && $user->hasPermission(self::pageViewPermission, $template);
   }
 
   /**
    * Tells if the current user can create pages using the given template.
-   *
-   * @param Template $template
-   * @return boolean
    */
-  public static function canCreate(Template $template)
+  public function canCreate(Template $template): bool
   {
-    $user = Utils::user();
+    $user = $this->context->user();
+    $templates = $this->context->templates();
 
     // can't create a page if no parent allowed
     if ($template->noParents == 1) {
@@ -82,32 +60,30 @@ class Permissions
     if (!$template->noParents && count($template->parentTemplates)) {
       // filter out the parents that has noChildren checked or
       // has configured childTemplates without the target template
-      $parentTemplates = array_filter($template->parentTemplates, function (
-        $templateId
-      ) use ($template) {
-        $parentTemplate = Utils::templates()->get($templateId);
-        if ($parentTemplate->noChildren) {
-          return false;
+      $parentTemplates = array_filter(
+        $template->parentTemplates,
+        function ($templateId) use ($template, $templates) {
+          $parentTemplate = $templates->get($templateId);
+          if ($parentTemplate->noChildren) {
+            return false;
+          }
+          return !count($parentTemplate->childTemplates)
+            || in_array($template->id, $parentTemplate->childTemplates);
         }
-        if (
-          count($parentTemplate->childTemplates) &&
-          !in_array($template->id, $parentTemplate->childTemplates)
-        ) {
-          return false;
-        }
-        return true;
-      });
+      );
 
       // get templates that user can add pages to
-      $addTemplates = self::getAddTemplates()->explode("id");
+      $addTemplates = $this->getAddTemplates()->explode("id");
       if (empty(array_intersect($addTemplates, $parentTemplates))) {
         return false;
       }
     }
 
     // can't create a page if one of the required fields is not legal
-    foreach ($template->fields->find("required=1") as $field) {
-      if (!in_array($field->name, Utils::module()->legalFields)) {
+    $legalFields = array_flip($this->context->module->legalFields);
+    $requiredFields = $template->fields->find("required=1");
+    foreach ($requiredFields as $field) {
+      if (!isset($legalFields[$field->name])) {
         return false;
       }
     }
@@ -117,19 +93,17 @@ class Permissions
       return true;
     }
 
-    // can't create if access rules are not defined
-    if (!self::definesAccess($template)) {
+    if (!$this->definesAccess($template)) {
       return false;
     }
 
-    // can't create a page if user does not have create permission on the given template
     if (!$user->hasPermission(self::pageCreatePermission, $template)) {
       return false;
     }
 
     // can't create a page if one of the required fields is not editable by the user for this template
-    foreach ($template->fields->find("required=1") as $field) {
-      if (!self::canEditField($field, $template)) {
+    foreach ($requiredFields as $field) {
+      if (!$this->canEditField($field, $template)) {
         return false;
       }
     }
@@ -138,102 +112,60 @@ class Permissions
   }
 
   /**
-   * Tells if the user can edit the page with the given template.
-   *
-   * @param Template $template
-   * @return boolean
+   * Tells if the user can edit pages with the given template.
    */
-  public static function canEdit(Template $template)
+  public function canEdit(Template $template): bool
   {
-    $user = Utils::user();
+    $user = $this->context->user();
 
-    // if superuser then can edit
     if ($user->isSuperuser()) {
       return true;
     }
 
-    // can't edit if no access rules defined
-    if (!self::definesAccess($template)) {
-      return false;
-    }
-
-    // can't edit a page if user does not have edit permission on the given template
-    if (!$user->hasPermission(self::pageEditPermission, $template)) {
-      return false;
-    }
-
-    return true;
+    return $this->definesAccess($template)
+      && $user->hasPermission(self::pageEditPermission, $template);
   }
 
   /**
-   * Tells if the user can delete a page with the given template.
-   *
-   * @param Template $template
-   * @return boolean
+   * Tells if the user can delete pages with the given template.
    */
-  public static function canDelete(Template $template)
+  public function canDelete(Template $template): bool
   {
-    $user = Utils::user();
+    $user = $this->context->user();
 
-    // superuser can delete
     if ($user->isSuperuser()) {
       return true;
     }
 
-    // can't delete a page if access rules are not defined
-    if (!self::definesAccess($template)) {
-      return false;
-    }
-
-    // can't delete if user does not have a delete permission on the given template
-    if (!$user->hasPermission(self::pageDeletePermission, $template)) {
-      return false;
-    }
-
-    return true;
+    return $this->definesAccess($template)
+      && $user->hasPermission(self::pageDeletePermission, $template);
   }
 
   /**
-   * Tells if the user can trash a page with the given template.
-   *
-   * @param Template $template
-   * @return boolean
+   * Tells if the user can trash pages with the given template.
    */
-  public static function canTrash(Template $template)
+  public function canTrash(Template $template): bool
   {
-    $user = Utils::user();
+    $user = $this->context->user();
 
-    // superuser can trash
     if ($user->isSuperuser()) {
       return true;
     }
 
-    // can't trash a page if access rules are not defined
-    if (!self::definesAccess($template)) {
+    if (!$this->definesAccess($template)) {
       return false;
     }
 
-    // can't trash if user does not have a delete or edit-trash-created
-    // permission on the given template
-    if (
-      !$user->hasPermission(self::pageDeletePermission, $template) &&
-      !$user->hasPermission(self::pageEditTrashCreatedPermission, $template)
-    ) {
-      return false;
-    }
-
-    return true;
+    return $user->hasPermission(self::pageDeletePermission, $template)
+      || $user->hasPermission(self::pageEditTrashCreatedPermission, $template);
   }
 
   /**
-   * Tells if a page can be added to the given template.
-   *
-   * @param Template $template
-   * @return boolean
+   * Tells if pages can be added as children of pages with the given template.
    */
-  public static function canAdd(Template $template)
+  public function canAdd(Template $template): bool
   {
-    $user = Utils::user();
+    $user = $this->context->user();
 
     // can't add a page if no child is allowed
     if ($template->noChildren == 1) {
@@ -242,80 +174,50 @@ class Permissions
 
     // can't add a page if the allowed childTemplates are not legal
     if ($template->noChildren == 0 && count($template->childTemplates)) {
-      if (
-        !count(
-          array_intersect(self::getTemplateIds(), $template->childTemplates)
-        )
-      ) {
+      if (!count(array_intersect($this->getTemplateIds(), $template->childTemplates))) {
         return false;
       }
     }
 
-    // superuser can add without permissions
     if ($user->isSuperuser()) {
       return true;
     }
 
-    // can't add if access rules are not defined
-    if (!self::definesAccess($template)) {
-      return false;
-    }
-
-    // can't add a page if user does not have add permission on the given template
-    if (!$user->hasPermission(self::pageAddPermission, $template)) {
-      return false;
-    }
-
-    return true;
+    return $this->definesAccess($template)
+      && $user->hasPermission(self::pageAddPermission, $template);
   }
 
   /**
    * Tells if the field can be edited by the user within the context of the given template.
-   *
-   * @param Field $field
-   * @param Template $template
-   * @return boolean
    */
-  public static function canEditField(Field $field, Template $template)
+  public function canEditField(Field $field, Template $template): bool
   {
-    return self::hasFieldPermission("edit", $field, $template);
+    return $this->hasFieldPermission("edit", $field, $template);
   }
 
   /**
    * Tells if the field can be viewed by the user within the context of the given template.
-   *
-   * @param Field $field
-   * @param Template $template
-   * @return boolean
    */
-  public static function canViewField(Field $field, Template $template)
+  public function canViewField(Field $field, Template $template): bool
   {
-    return self::hasFieldPermission("view", $field, $template);
+    return $this->hasFieldPermission("view", $field, $template);
   }
 
   /**
-   * Determines whether the current user has given permission on $field within
-   * $template's context.
-   * @param  string   $permission The permission type. Either 'view' or 'edit'
-   * @param  Field    $field      The field against the check is performed
-   * @param  Template $template   The context of the field.
-   * @return boolean              Returns true if user has rights and false otherwise
+   * Determines whether the current user has the given permission ('view' or
+   * 'edit') on $field within $template's context.
    */
-  public static function hasFieldPermission(
-    string $permission,
-    Field $field,
-    Template $template
-  ) {
-    $user = Utils::user();
+  public function hasFieldPermission(string $permission, Field $field, Template $template): bool
+  {
+    $user = $this->context->user();
 
-    // can view/edit a field if superuser
     if ($user->isSuperuser()) {
       return true;
     }
 
     // cannot view/edit if access rules are not defined
     $field = $template->fields->getFieldContext($field);
-    if (!self::definesAccess($field)) {
+    if (!$this->definesAccess($field)) {
       return false;
     }
 
@@ -330,40 +232,39 @@ class Permissions
 
   /**
    * Tells if the template or field has access control defined.
-   *
-   * @param Template|Field $context
-   * @return boolean
    */
-  public static function definesAccess($context)
+  public function definesAccess(Template|Field $context): bool
   {
     return (bool) $context->useRoles;
   }
 
   /**
-   * Returns legal templates. The ones user marked in the module settings.
-   *
-   * @return Templates
+   * Returns legal templates. The ones marked in the module settings.
    */
-  public static function getTemplates()
+  public function getTemplates(): TemplatesArray
   {
-    $templates = Utils::templates();
-    $legalTemplateNames = implode("|", Utils::module()->legalTemplates);
-    return $templates->find("name=$legalTemplateNames");
+    $names = implode("|", $this->context->module->legalTemplates);
+    return $this->context->templates()->find("name=$names");
   }
 
   /**
    * Returns the ids of the legal templates.
    *
-   * @return integer[]
+   * @return int[]
    */
-  public static function getTemplateIds()
+  public function getTemplateIds(): array
   {
-    return self::getTemplates()->explode("id");
+    return $this->getTemplates()->explode("id");
   }
 
-  public static function filterTemplatesByPermission($predicator)
+  /**
+   * Returns the legal templates that match the predicator.
+   *
+   * @param callable(Template): bool $predicator
+   */
+  public function filterTemplatesByPermission(callable $predicator): TemplatesArray
   {
-    $templates = self::getTemplates();
+    $templates = $this->getTemplates();
     foreach ($templates as $template) {
       if (!$predicator($template)) {
         $templates->remove($template);
@@ -372,71 +273,63 @@ class Permissions
     return $templates;
   }
 
-  /**
-   * Returns the templates that can be viewed by the current user.
-   *
-   * @return Templates
-   */
-  public static function getViewTemplates()
+  /** Templates that can be viewed by the current user. */
+  public function getViewTemplates(): TemplatesArray
   {
-    return self::memoize("view", self::canView(...));
+    return $this->memoize("view", $this->canView(...));
+  }
+
+  /** Templates whose pages can be created by the current user. */
+  public function getCreateTemplates(): TemplatesArray
+  {
+    return $this->memoize("create", $this->canCreate(...));
+  }
+
+  /** Templates whose pages can be edited by the current user. */
+  public function getEditTemplates(): TemplatesArray
+  {
+    return $this->memoize("edit", $this->canEdit(...));
+  }
+
+  /** Templates whose pages can be deleted by the current user. */
+  public function getDeleteTemplates(): TemplatesArray
+  {
+    return $this->memoize("delete", $this->canDelete(...));
+  }
+
+  /** Templates whose pages can be moved to the trash by the current user. */
+  public function getTrashTemplates(): TemplatesArray
+  {
+    return $this->memoize("trash", $this->canTrash(...));
+  }
+
+  /** Templates whose pages the current user can add children to. */
+  public function getAddTemplates(): TemplatesArray
+  {
+    return $this->memoize("add", $this->canAdd(...));
   }
 
   /**
-   * Returns the templates that can be created by the current user.
-   *
-   * @return Templates
+   * Makes the legal fields accessible via the ProcessWire API.
    */
-  public static function getCreateTemplates()
+  public function turnOnApiAccess(): void
   {
-    return self::memoize("create", self::canCreate(...));
-  }
-
-  /**
-   * Returns the templates that can be edited by the current user.
-   *
-   * @return Templates
-   */
-  public static function getEditTemplates()
-  {
-    return self::memoize("edit", self::canEdit(...));
-  }
-
-  /**
-   * Returns the templates that can be deleted by the current user.
-   *
-   * @return Templates
-   */
-  public static function getDeleteTemplates()
-  {
-    return self::memoize("delete", self::canDelete(...));
-  }
-
-  /**
-   * Returns the templates that can be moved to trash by the current user.
-   *
-   * @return Templates
-   */
-  public static function getTrashTemplates()
-  {
-    return self::memoize("trash", self::canTrash(...));
-  }
-
-  /**
-   * Returns the templates that user can add pages to.
-   *
-   * @return Templates
-   */
-  public static function getAddTemplates()
-  {
-    return self::memoize("add", self::canAdd(...));
-  }
-
-  public static function turnOnApiAccess()
-  {
-    foreach (Utils::module()->legalFields as $fieldName) {
-      $field = Utils::fields()->get($fieldName);
-      $field->flags = $field->flags | Field::flagAccessAPI;
+    $fields = $this->context->fields();
+    foreach ($this->context->module->legalFields as $fieldName) {
+      $field = $fields->get($fieldName);
+      if ($field instanceof Field) {
+        $field->flags = $field->flags | Field::flagAccessAPI;
+      }
     }
+  }
+
+  /**
+   * Memoized per user, because `login` and `logout` can change the user
+   * during an execution.
+   */
+  private function memoize(string $kind, callable $predicator): TemplatesArray
+  {
+    $key = $kind . ':' . $this->context->user()->id;
+    return $this->memo[$key] ??= $this->filterTemplatesByPermission($predicator);
   }
 }

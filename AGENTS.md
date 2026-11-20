@@ -70,15 +70,22 @@ Check `src/Type/Fieldtype/` to see existing implementations.
 - Avoid N+1: collect IDs with `PagesBuffer::add()` and resolve with a
   `GraphQL\Deferred` that loads the whole batch once (see `PageType`,
   `FieldtypeFile`, `FieldtypePage`).
-- Build types through `Cache::type()` and define `fields` as closures.
-- `Permissions::get*Templates()` are memoized per request; `Cache::clear()`
-  (called by `Schema::build()`) resets them.
+- No static state. Everything of one execution lives in `ProcessWire\GraphQL\Context`
+  (created by `$module->createContext()`, passed to graphql-php as `contextValue`):
+  ProcessWire instance, module, `permissions`, `buffer` (PagesBuffer), `types`
+  (TypeRegistry), parsed selectors and batch loaded file rows.
+- Type builders take the context as first argument (`PageType::type($context, $template)`)
+  and register types via `$context->types->type($name, fn() => ...)`; define `fields` as
+  closures. Resolvers use their third argument `Context $context`, never `Utils::pages()` etc.
+- The schema is built per context (`Schema::build($context)` / `$module->getSchema($context)`),
+  because it depends on the user's permissions.
+- Third-party fieldtypes (`GraphQL<Fieldtype>` modules) keep their static, context free
+  contract: `getType(Field)`, `getInputType(Field)`, `setValue(Page, Field, $value)`.
 
 ## Known Issues / Todo
 - **N+1 Problems:** Repeater fields are still loaded per page.
-- **Architecture:** Request state lives in static classes (`Schema`, `Cache`,
-  `PagesBuffer`, `Permissions`). A request context passed as GraphQL
-  `contextValue` would make multi-instance use safer.
+- **Schema caching:** The schema is rebuilt for every execution (~1ms). It could be
+  cached per user/role set if that ever becomes relevant.
 
 ## Useful Commands
 - `composer dump-autoload`: Regenerate autoloader after adding classes.
