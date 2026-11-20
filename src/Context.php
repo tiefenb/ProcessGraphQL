@@ -56,6 +56,13 @@ final class Context
    */
   public array $files = [];
 
+  /**
+   * Repeater items loaded in batches, keyed by field name and page id.
+   *
+   * @var array<string, array<int, array<int, \ProcessWire\Page>>>
+   */
+  public array $repeaters = [];
+
   public function __construct(
     public readonly ProcessWire $wire,
     public readonly ProcessGraphQL $module,

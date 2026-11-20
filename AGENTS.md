@@ -69,7 +69,7 @@ Check `src/Type/Fieldtype/` to see existing implementations.
   a mutation was generated for alone.
 - Avoid N+1: collect IDs with `PagesBuffer::add()` and resolve with a
   `GraphQL\Deferred` that loads the whole batch once (see `PageType`,
-  `FieldtypeFile`, `FieldtypePage`).
+  `FieldtypeFile`, `FieldtypePage`, `FieldtypeRepeater`).
 - No static state. Everything of one execution lives in `ProcessWire\GraphQL\Context`
   (created by `$module->createContext()`, passed to graphql-php as `contextValue`):
   ProcessWire instance, module, `permissions`, `buffer` (PagesBuffer), `types`
@@ -83,7 +83,6 @@ Check `src/Type/Fieldtype/` to see existing implementations.
   contract: `getType(Field)`, `getInputType(Field)`, `setValue(Page, Field, $value)`.
 
 ## Known Issues / Todo
-- **N+1 Problems:** Repeater fields are still loaded per page.
 - **Schema caching:** Deliberately not done. The schema is built per execution, which
   costs well under 1ms and no database queries (types and enum values are lazy). It
   holds closures bound to the Context, so it cannot be serialized between requests; an
