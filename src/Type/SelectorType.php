@@ -44,11 +44,13 @@ class SelectorType
    * @return string
    * @throws Error
    */
-  public static function parseValue(string $value)
+  public static function parseValue(string $value, ?int $maxLimit = null)
   {
+    $maxLimit ??= (int) Utils::module()->maxLimit;
+
     // if we already parsed the given selector
     // then return the cached result.
-    $key = self::getCacheKeyForSelector($value);
+    $key = self::getCacheKeyForSelector($value, $maxLimit);
     if (isset(self::$parsedValues[$key])) {
       return self::$parsedValues[$key];
     }
@@ -63,7 +65,6 @@ class SelectorType
     self::assertAllowedFields($selectors);
 
     // make sure the limit field is not greater than max allowed
-    $maxLimit = Utils::module()->maxLimit;
     $limitSelector = self::findSelectorByField($selectors, 'limit');
     if ($limitSelector instanceof Selector) {
       if ($maxLimit < $limitSelector->value) $limitSelector->set('value', $maxLimit);
@@ -172,14 +173,14 @@ class SelectorType
     return null;
   }
 
-  public static function getCacheKeyForSelector(string $selector)
+  public static function getCacheKeyForSelector(string $selector, ?int $maxLimit = null)
   {
     $key = $selector;
     $seperator = '-';
 
     // max limit
     $key .= "$seperator$seperator";
-    $key .= Utils::module()->maxLimit;
+    $key .= $maxLimit ?? Utils::module()->maxLimit;
 
     // legal templates
     $key .= "$seperator$seperator";

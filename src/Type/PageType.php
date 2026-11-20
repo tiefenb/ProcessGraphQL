@@ -7,7 +7,9 @@ use ProcessWire\Page;
 use ProcessWire\NullPage;
 use ProcessWire\Template;
 use ProcessWire\WireData;
+use GraphQL\Deferred;
 use ProcessWire\GraphQL\Cache;
+use ProcessWire\GraphQL\PagesBuffer;
 use ProcessWire\GraphQL\Permissions;
 use ProcessWire\GraphQL\Utils;
 use ProcessWire\GraphQL\Type\UserType;
@@ -16,6 +18,10 @@ use ProcessWire\GraphQL\Type\SelectorType;
 
 class PageType
 {
+  private const PARENT_BUFFER = '__pageParent';
+
+  private const USER_BUFFER = '__pageUser';
+
   private static ?WireData $emptyUser = null;
 
   public static function &type(?Template $template = null)
@@ -266,15 +272,22 @@ class PageType
       ],
       'resolve' => function (Page $page, array $args) use ($options) {
         $name = $options['name'];
-        $selector = "";
-        if (isset($args['s'])) {
-          $selector = SelectorType::parseValue($args['s']);
-        } else {
-          $selector = SelectorType::parseValue("");
+        $selector = SelectorType::parseValue($args['s'] ?? "");
+        $resolve = function () use ($page, $name, $selector) {
+          $result = $page->$name($selector);
+          return $result instanceof NullPage ? null : $result;
+        };
+
+        // parents of all pages on this level are loaded with one query
+        if ($name === 'parent' && $page->parent_id) {
+          PagesBuffer::add(self::PARENT_BUFFER, (int) $page->parent_id);
+          return new Deferred(function () use ($resolve) {
+            PagesBuffer::preload(self::PARENT_BUFFER);
+            return $resolve();
+          });
         }
-        $result = $page->$name($selector);
-        if ($result instanceof NullPage) return null;
-        return $result;
+
+        return $resolve();
       }
     ];
   }
@@ -328,19 +341,23 @@ class PageType
     return [...$options,
       'resolve' => function (Page $page) use ($options) {
         $name = $options['name'];
-        $result = $page->$name;
-        if ($result instanceof NullPage) {
-          return self::getEmptyUser();
-        }
-        if ($result instanceof Page) {
-          $templateName = $result->template->name;
-          if (Permissions::getViewTemplates()->find("name=$templateName")->count()) {
-            return $result;
-          } else {
+        $idProperty = $name === 'createdUser' ? 'created_users_id' : 'modified_users_id';
+        PagesBuffer::add(self::USER_BUFFER, (int) $page->$idProperty);
+
+        // users of all pages on this level are loaded with one query
+        return new Deferred(function () use ($page, $name) {
+          PagesBuffer::preload(self::USER_BUFFER);
+          $result = $page->$name;
+          if ($result instanceof NullPage) {
             return self::getEmptyUser();
           }
-        }
-        return $result;
+          if ($result instanceof Page) {
+            return Permissions::getViewTemplates()->has($result->template)
+              ? $result
+              : self::getEmptyUser();
+          }
+          return $result;
+        });
       }
     ];
   }

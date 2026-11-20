@@ -3,6 +3,8 @@
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\Type;
 use GraphQL\Type\Definition\ResolveInfo;
+use ProcessWire\Field;
+use ProcessWire\FieldtypeFile as PWFieldtypeFile;
 use ProcessWire\Template;
 use ProcessWire\GraphQL\Cache;
 use ProcessWire\GraphQL\Type\PageType;
@@ -158,13 +160,35 @@ class PageArrayType {
 		$loadOptions = [];
 		$subfields = $info->getFieldSelection(1);
 		if (isset($subfields['list']) && is_array($subfields['list'])) {
-			$loadOptions['autojoin'] = true;
-			$loadOptions['joinFields'] = array_keys($subfields['list']);
+			$joinFields = self::getJoinFields(array_keys($subfields['list']));
+			if ($joinFields) {
+				$loadOptions['autojoin'] = true;
+				$loadOptions['joinFields'] = $joinFields;
+			}
 		}
-		$finderOptions = [
+		return [
 			'loadOptions' => $loadOptions,
+			// counting the total (SQL_CALC_FOUND_ROWS / COUNT) is only
+			// needed if the client actually asks for it
+			'getTotal' => isset($subfields['getTotal']),
 		];
-		return $finderOptions;
+	}
+
+	/**
+	 * Filters the requested subfield names down to the fields that are worth
+	 * autojoining. File and image fields are loaded in a batch by
+	 * FieldtypeFile::loadFilesData(), so joining them would load them twice.
+	 *
+	 * @param string[] $names
+	 * @return string[]
+	 */
+	public static function getJoinFields(array $names): array
+	{
+		$fields = Utils::fields();
+		return array_values(array_filter($names, function ($name) use ($fields) {
+			$field = $fields->get($name);
+			return $field instanceof Field && !$field->type instanceof PWFieldtypeFile;
+		}));
 	}
 
 	public static function getPaginationFields()

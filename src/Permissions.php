@@ -17,6 +17,25 @@ class Permissions
   public const pageEditTrashCreatedPermission = "page-edit-trash-created";
 
   /**
+   * Per-request memo of permission filtered templates, keyed by kind and user.
+   * Cleared together with the schema caches (see Cache::clear()).
+   *
+   * @var array<string, \ProcessWire\TemplatesArray>
+   */
+  private static array $memo = [];
+
+  public static function clearCache(): void
+  {
+    self::$memo = [];
+  }
+
+  private static function memoize(string $kind, callable $predicator)
+  {
+    $key = $kind . ':' . Utils::user()->id;
+    return self::$memo[$key] ??= self::filterTemplatesByPermission($predicator);
+  }
+
+  /**
    * Checks if the page using this template can be viewed by the current user.
    *
    * @param Template $template
@@ -301,14 +320,12 @@ class Permissions
     }
 
     $roles = $permission . "Roles";
+    $allowedRoleIds = $field->$roles;
 
-    foreach ($user->roles as $role) {
-      if (in_array($role->id, $field->$roles)) {
-        return true;
-      }
-    }
-
-    return false;
+    return array_any(
+      $user->roles->explode("id"),
+      fn($roleId) => in_array($roleId, $allowedRoleIds)
+    );
   }
 
   /**
@@ -362,9 +379,7 @@ class Permissions
    */
   public static function getViewTemplates()
   {
-    return self::filterTemplatesByPermission(function (Template $template) {
-      return self::canView($template);
-    });
+    return self::memoize("view", self::canView(...));
   }
 
   /**
@@ -374,9 +389,7 @@ class Permissions
    */
   public static function getCreateTemplates()
   {
-    return self::filterTemplatesByPermission(function (Template $template) {
-      return self::canCreate($template);
-    });
+    return self::memoize("create", self::canCreate(...));
   }
 
   /**
@@ -386,9 +399,7 @@ class Permissions
    */
   public static function getEditTemplates()
   {
-    return self::filterTemplatesByPermission(function (Template $template) {
-      return self::canEdit($template);
-    });
+    return self::memoize("edit", self::canEdit(...));
   }
 
   /**
@@ -398,9 +409,7 @@ class Permissions
    */
   public static function getDeleteTemplates()
   {
-    return self::filterTemplatesByPermission(function (Template $template) {
-      return self::canDelete($template);
-    });
+    return self::memoize("delete", self::canDelete(...));
   }
 
   /**
@@ -410,9 +419,7 @@ class Permissions
    */
   public static function getTrashTemplates()
   {
-    return self::filterTemplatesByPermission(function (Template $template) {
-      return self::canTrash($template);
-    });
+    return self::memoize("trash", self::canTrash(...));
   }
 
   /**
@@ -422,9 +429,7 @@ class Permissions
    */
   public static function getAddTemplates()
   {
-    return self::filterTemplatesByPermission(function (Template $template) {
-      return self::canAdd($template);
-    });
+    return self::memoize("add", self::canAdd(...));
   }
 
   public static function turnOnApiAccess()

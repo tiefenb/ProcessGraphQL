@@ -16,14 +16,31 @@ class PagesBuffer
       // nothing to load if there are no page ids
       return;
     }
-    $module = Utils::module();
-    $maxLimit = $module->maxLimit;
-    $module->maxLimit = 100000;
-    $selector = SelectorType::parseValue("");
-    $module->maxLimit = $maxLimit;
-    $selector .= ', id=' . implode('|', self::$pageIDs[$group]);
-    Utils::pages()->find($selector, $options);
+    $ids = array_unique(self::$pageIDs[$group]);
+    $selector = SelectorType::parseValue("", count($ids));
+    $selector .= ', id=' . implode('|', $ids);
+    // the found pages only warm the page cache, no total is needed
+    Utils::pages()->find($selector, [...$options, 'getTotal' => false]);
     self::clear($group);
+  }
+
+  /**
+   * Loads the buffered page IDs of the group into ProcessWire's page cache in
+   * one query, so following $pages->get($id) calls are served from memory.
+   * Access control is not applied here, callers have to check it themselves.
+   */
+  public static function preload(string $group): void
+  {
+    $ids = array_values(array_unique(array_filter(self::$pageIDs[$group] ?? [])));
+    self::clear($group);
+    if (!$ids) {
+      return;
+    }
+    $pages = Utils::pages();
+    $ids = array_values(array_filter($ids, fn($id) => !$pages->getCache($id)));
+    if ($ids) {
+      $pages->getByIDs($ids);
+    }
   }
 
   public static function clear($group)
@@ -61,6 +78,6 @@ class PagesBuffer
 
   public static function get($group)
   {
-    return self::$pageIDs[$group];
+    return self::$pageIDs[$group] ?? [];
   }
 }

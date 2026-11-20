@@ -60,5 +60,6 @@ class Cache
   {
     self::clearType();
     self::clearField();
+    Permissions::clearCache();
   }
 }
