@@ -29,8 +29,8 @@ See more [demo here](https://github.com/dadish/ProcessGraphQL/blob/main/ScreenCa
 
 ## Requirements
 
-- ProcessWire version >= 3.0.62
-- PHP version >= 8.3 (tested on PHP 8.5)
+- ProcessWire version >= 3.0.210 (tested on 3.0.276 dev)
+- PHP version >= 8.4 (tested on PHP 8.4 and 8.5)
 
 > It would be very helpful if you open an issue when encounter errors regarding environment incompatibilities.
 
@@ -90,6 +90,23 @@ The ProcessWire's Access Control system is very flexible and allows you to fine 
 - `page-edit-trash-created`
 
 Learn more about ProcessWire's Access Control system [here][pw-access].
+
+### Selectors
+
+The `s` argument accepts ProcessWire selectors. To make sure clients can only see pages they are allowed to see, the selector fields `include`, `status`, `status_id` and `check_access` (`checkAccess`) are rejected, also inside sub-selectors (`field=[...]`) and OR-groups (`(...)`). Enable the __Allow Advanced Selectors__ module setting only for trusted or internal APIs. `force_access` and `instance_id` are always rejected.
+
+### Performance
+
+- Parents, `createdUser`/`modifiedUser`, page reference, file and image fields are loaded in batches per query level.
+- The total number of pages is only counted when `getTotal` is requested.
+- On ProcessWire 3.0.276+ you can opt in to the new PageFinder, which counts totals with `COUNT` instead of `SQL_CALC_FOUND_ROWS` (deprecated in MySQL 8). Add this to your `/site/config.php`:
+
+  ```php
+  $config->PageFinder = ['version' => 2];
+  ```
+
+  The ProcessGraphQL test suite passes with both PageFinder versions.
+- Use the __Max Query Depth__ and __Max Query Complexity__ module settings to limit expensive queries.
 
 ## API
 

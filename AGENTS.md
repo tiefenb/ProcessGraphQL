@@ -26,7 +26,8 @@ This document is for AI agents (and humans) working on the ProcessGraphQL codeba
 ## Development Workflow
 
 ### Prerequisites
-- PHP >= 8.3 (tested on PHP 8.5)
+- PHP >= 8.4 (tested on PHP 8.4 and 8.5)
+- MySQL for the test suite (`test/site/config.php`, database `processgraphql`)
 - Composer
 - Node.js & NPM
 
@@ -38,7 +39,7 @@ This document is for AI agents (and humans) working on the ProcessGraphQL codeba
     ```
 
 ### Testing
-- **Run all tests:** `npm test` (Runs PHPUnit)
+- **Run all tests:** `npm test` (runs `vendor/bin/phpunit`; resets the test database and needs MySQL)
 - **Performance tests:** `npm run test:performance`
 - **Coverage:** `npm run test:cover`
 
@@ -60,11 +61,24 @@ Check `src/Type/Fieldtype/` to see existing implementations.
 - Uses `semantic-release`.
 - Commit messages should follow conventional commits (e.g., `feat:`, `fix:`) to trigger version bumps.
 
+## Conventions
+- Client selectors always go through `SelectorType::parseValue()`. It rejects
+  visibility changing selector fields (`include`, `status`, `check_access`, ...)
+  and limits results to legal, viewable templates and `maxLimit`.
+- Mutations re-check permissions on the target page; never trust the template
+  a mutation was generated for alone.
+- Avoid N+1: collect IDs with `PagesBuffer::add()` and resolve with a
+  `GraphQL\Deferred` that loads the whole batch once (see `PageType`,
+  `FieldtypeFile`, `FieldtypePage`).
+- Build types through `Cache::type()` and define `fields` as closures.
+- `Permissions::get*Templates()` are memoized per request; `Cache::clear()`
+  (called by `Schema::build()`) resets them.
+
 ## Known Issues / Todo
-See `Todo.md` for the current backlog.
-- **N+1 Problems:** Needs optimization for Files, Images, and Repeaters.
-- **Security:** Selector sanitization needs review.
-- **Performance:** Query complexity limiting is missing.
+- **N+1 Problems:** Repeater fields are still loaded per page.
+- **Architecture:** Request state lives in static classes (`Schema`, `Cache`,
+  `PagesBuffer`, `Permissions`). A request context passed as GraphQL
+  `contextValue` would make multi-instance use safer.
 
 ## Useful Commands
 - `composer dump-autoload`: Regenerate autoloader after adding classes.

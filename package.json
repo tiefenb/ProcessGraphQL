@@ -7,11 +7,11 @@
     "test": "test"
   },
   "scripts": {
-    "test": "php -d error_reporting=24575 composer.phar exec -v phpunit",
-    "test:cover": "phpdbg -qrr vendor/phpunit/phpunit/phpunit --bootstrap test/bootstrap.php --coverage-html coverage --whitelist src test",
-    "test:performance:totalCount": "php composer.phar exec -v \"phpunit --bootstrap test/bootstrap.php test/Performance/DbQueryCountTest.php\"",
-    "test:performance:longCount": "php composer.phar exec -v \"phpunit --bootstrap test/bootstrap.php test/Performance/DbLongQueryCountTest.php\"",
-    "test:performance:shortCount": "php composer.phar exec -v \"phpunit --bootstrap test/bootstrap.php test/Performance/DbShortQueryCountTest.php\"",
+    "test": "php vendor/bin/phpunit",
+    "test:cover": "XDEBUG_MODE=coverage php vendor/bin/phpunit --coverage-html coverage",
+    "test:performance:totalCount": "php vendor/bin/phpunit test/Performance/DbQueryCountTest.php",
+    "test:performance:longCount": "php vendor/bin/phpunit test/Performance/DbLongQueryCountTest.php",
+    "test:performance:shortCount": "php vendor/bin/phpunit test/Performance/DbShortQueryCountTest.php",
     "test:performance": "npm-run-all test:performance:*",
     "posttest": "php test/cleanup.php",
     "release": "semantic-release",

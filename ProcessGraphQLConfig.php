@@ -338,7 +338,7 @@ class ProcessGraphQLConfig extends ModuleConfig {
     $f->attr('name', 'allowAdvancedSelectors');
     $f->label = 'Allow Advanced Selectors';
     $f->columnWidth = 50;
-    $f->description = "Allows the `include`, `check_access` and `status_id` selector fields in GraphQL queries. Enables querying hidden or unpublished pages and bypassing access checks.";
+    $f->description = "Allows the `include`, `status`, `status_id` and `check_access` (`checkAccess`) selector fields in GraphQL queries, including in sub-selectors. Enables querying hidden or unpublished pages and bypassing access checks.";
     $f->notes = "Only enable this for trusted or internal APIs. The `force_access` and `instance_id` selectors are always blocked.";
     $inputfields->add($f);
 

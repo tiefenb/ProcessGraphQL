@@ -12,30 +12,28 @@ workflows:
   main:
     jobs:
       - test:
-          name: test-php-7.4
+          name: test-php-8.4
           context:
             - github-credentials
             - dockerhub-credentials
-          php: "7.4"
-          phpunit: "9.6"
-          mysql: "5.7.34"
+          php: "8.4"
+          mysql: "8.0"
 
       - test:
-          name: test-php-8.2
+          name: test-php-8.5
           context:
             - github-credentials
             - dockerhub-credentials
-          php: "8.2"
-          phpunit: "10.1"
-          mysql: "8.0.25"
+          php: "8.5"
+          mysql: "8.0"
 
       - approve_release:
           name: approve-release
           <<: *release_branches
           type: approval
           requires:
-            - test-php-7.4
-            - test-php-8.2
+            - test-php-8.4
+            - test-php-8.5
 
       - release:
           name: release
@@ -70,9 +68,6 @@ jobs:
       mysql:
         description: The MySQL version
         type: string
-      phpunit:
-        description: The phpunit version
-        type: string
     docker:
       - image: cimg/php:<<parameters.php>>
         auth:
@@ -93,10 +88,7 @@ jobs:
       - run:
           name: Install Dependencies
           command: |
-            rm composer.lock
             composer config http-basic.github.com dadish ${GH_TOKEN}
-            composer require phpunit/phpunit ^<<parameters.phpunit>> --dev
-            composer update --with-all-dependencies
             composer install
 
       # Our primary container isn't MYSQL so run a sleep command until it's ready.
@@ -114,7 +106,7 @@ jobs:
       - run:
           name: Run Tests
           command: |
-            composer exec -v "phpunit --bootstrap test/bootstrap.php --exclude-group performance test"
+            php vendor/bin/phpunit --exclude-group performance
 
   release:
     docker:
