@@ -101,9 +101,13 @@ $wire->wire('page', $pages->get('/'));
 // disable cache for $pages->get() & $pages->find() if they have random sorting
 $pages->addHookBefore('find', function ($event) {
 	$selector = $event->arguments('selector');
-	if (strpos($selector, 'sort=random')) {
+	if (is_string($selector) && strpos($selector, 'sort=random')) {
 		$hash = uniqid();
 		$selector .= ", id!=$hash";
+		// a superuser also finds pages that earlier tests moved to the trash
+		if (!str_contains($selector, 'status') && !str_contains($selector, 'include=')) {
+			$selector .= ", status<trash";
+		}
 		$event->arguments('selector', $selector);
 	}
 });
